@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::process::exit;
 
-use crate::parser::{AstNode, ParserToken};
+use crate::parser::{ParserToken};
 use crate::lexer::{LexerToken};
 use crate::value::{Value, self, ValueAdder};
 
@@ -68,7 +68,7 @@ impl Interpreter {
 
         let frst = self.pop();
         let scnd = self.pop();
-        let r: Result<Value, String>;
+        let r;
         if op == "+" {
             r = frst.add(scnd);
         }
@@ -86,7 +86,7 @@ impl Interpreter {
         }
 
         if r.is_err() {
-            println!("Error when executing an operator {}", r.unwrap_err());
+            println!("Error when executing an operator {:?}", r.unwrap_err());
             exit(1);
         }
         let ur = r.unwrap();

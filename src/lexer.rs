@@ -1,12 +1,10 @@
-use serde::{Deserialize, Serialize};
-
 use crate::value::Value;
 
 const SYMBOLS: [char; 7] = ['{', '}', '=', '.', ',', ':', ';'];
 const OPERATORS: [&'static str; 6] = ["+", "-", "/", "*", "(", ")"]; // Not chars cuz need to add operators like "&&", "||"
 const KEYWORDS: [&'static str; 1] = ["let"];
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone)]
 pub enum LexerToken {
     Keyword(String),
     Value(Value),

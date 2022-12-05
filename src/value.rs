@@ -1,91 +1,90 @@
 
-use serde::{Deserialize, Serialize};
-
 #[derive(Debug)]
-pub enum VErr {
-    ParsingError
+pub enum ValueE {
+    ParsingError,
+    TypeMismatch
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Int(i64),
     Null,
 }
 
 impl Value {
-    pub fn parse(s: &String) -> Result<Value, VErr> {
+    pub fn parse(s: &String) -> Result<Value, ValueE> {
         if let Ok(i) = s.parse::<i64>() {
             return Ok(Value::Int(i));
         }
-        Err(VErr::ParsingError)
+        Err(ValueE::ParsingError)
     }
 }
 
 pub trait ValueAdder<T> {
-    fn add(&self, rhs: T) -> Result<Value, String>;
-    fn sub(&self, rhs: T) -> Result<Value, String>;
-    fn mul(&self, rhs: T) -> Result<Value, String>;
-    fn div(&self, rhs: T) -> Result<Value, String>;
+    fn add(&self, rhs: T) -> Result<Value, ValueE>;
+    fn sub(&self, rhs: T) -> Result<Value, ValueE>;
+    fn mul(&self, rhs: T) -> Result<Value, ValueE>;
+    fn div(&self, rhs: T) -> Result<Value, ValueE>;
 }
 
 // Value + Value
 impl ValueAdder<Value> for Value {
-    fn add(&self, rhs: Value) -> Result<Value, String> {
+    fn add(&self, rhs: Value) -> Result<Value, ValueE> {
         if let Value::Int(value) = rhs {
             return self.add(value);
         }
-        return Err("Type mismatch".to_string());
+        return Err(ValueE::TypeMismatch);
     }
     
-    fn sub(&self, rhs: Value) -> Result<Value, String> {
+    fn sub(&self, rhs: Value) -> Result<Value, ValueE> {
         if let Value::Int(value) = rhs {
             return self.sub(value);
         }
-        return Err("Type mismatch".to_string());
+        return Err(ValueE::TypeMismatch);
     }
 
-    fn mul(&self, rhs: Value) -> Result<Value, String> {
+    fn mul(&self, rhs: Value) -> Result<Value, ValueE> {
         if let Value::Int(value) = rhs {
             return self.mul(value);
         }
-        return Err("Type mismatch".to_string());
+        return Err(ValueE::TypeMismatch);
     }
 
-    fn div(&self, rhs: Value) -> Result<Value, String> {
+    fn div(&self, rhs: Value) -> Result<Value, ValueE> {
         if let Value::Int(value) = rhs {
             return self.div(value);
         }
-        return Err("Type mismatch".to_string());
+        return Err(ValueE::TypeMismatch);
     }
 }
 
 // Value + i64
 impl ValueAdder<i64> for Value {
-    fn add(&self, rhs: i64) -> Result<Value, String> {
+    fn add(&self, rhs: i64) -> Result<Value, ValueE> {
         if let Value::Int(lhs) = self {
             return Ok(Value::Int(lhs.clone() + rhs));
         }
-        return Err("Type mismatch".to_string());
+        return Err(ValueE::TypeMismatch);
     }
     
-    fn sub(&self, rhs: i64) -> Result<Value, String> {
+    fn sub(&self, rhs: i64) -> Result<Value, ValueE> {
         if let Value::Int(lhs) = self {
             return Ok(Value::Int(lhs.clone() - rhs));
         }
-        return Err("Type mismatch".to_string());
+        return Err(ValueE::TypeMismatch);
     }
 
-    fn mul(&self, rhs: i64) -> Result<Value, String> {
+    fn mul(&self, rhs: i64) -> Result<Value, ValueE> {
         if let Value::Int(lhs) = self {
             return Ok(Value::Int(lhs.clone() * rhs));
         }
-        return Err("Type mismatch".to_string());
+        return Err(ValueE::TypeMismatch);
     }
 
-    fn div(&self, rhs: i64) -> Result<Value, String> {
+    fn div(&self, rhs: i64) -> Result<Value, ValueE> {
         if let Value::Int(lhs) = self {
             return Ok(Value::Int(lhs.clone() / rhs));
         }
-        return Err("Type mismatch".to_string());
+        return Err(ValueE::TypeMismatch);
     }
 }

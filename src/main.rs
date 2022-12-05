@@ -4,6 +4,7 @@
 use std::{process::exit, io::{self, Write}};
 use serde::{Serialize, Deserialize};
 
+mod expr;
 mod value;
 mod lexer;
 mod parser;
@@ -11,7 +12,7 @@ mod interpreter;
 
 use value::{Value, ValueAdder};
 use lexer::{LexerToken};
-use parser::{AstNode};
+use expr::{AstExpr};
 
 fn get_line() -> Result<String, String> {
     // 
