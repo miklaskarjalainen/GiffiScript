@@ -4,7 +4,7 @@ const SYMBOLS: [char; 7] = ['{', '}', '=', '.', ',', ':', ';'];
 const OPERATORS: [&'static str; 6] = ["+", "-", "/", "*", "(", ")"]; // Not chars cuz need to add operators like "&&", "||"
 const KEYWORDS: [&'static str; 1] = ["let"];
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum LexerToken {
     Keyword(String),
     Value(Value),

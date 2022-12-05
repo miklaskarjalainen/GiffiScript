@@ -7,7 +7,11 @@ use crate::lexer::{LexerToken, Lexer};
 use crate::value::Value;
 use crate::expr::{AstExpr};
 
-pub struct Parser;
+pub struct Parser {
+    input: Vec<LexerToken>,
+    tokens: Vec<ParserToken>
+}
+
 #[derive(Debug)]
 pub enum ParserToken {
     DeclareVariable(String), // Pops a value from stack and stores it to stack
@@ -19,47 +23,103 @@ pub enum ParserToken {
 
 impl Parser {
     pub fn parse(mut tokens: Vec<LexerToken>) -> Vec<ParserToken> {
-        /*
-        Todo: Doesn't work without modifications if the source code is directly read from a while,
-        but because we're doing this through console ("line by line") it's okay for now
-        */
-        let mut iter = tokens.iter().peekable();
-        let peeked = iter.peek().expect("nothing to do");
-        if let LexerToken::Keyword(kw) = peeked {
-            // variable decleration syntax
-            if kw == "let" {
-                // 'let' keyword
-                iter.next(); 
-                
-                // identifier
-                let tk_identifier = iter.next().expect("nothing after keyword 'let'");
-                if let LexerToken::Identifier(identifier) = tk_identifier {
-                    // symbol '='
-                    let symbol = iter.next().expect("nothing after keyword 'let'");
-                    if let LexerToken::Symbol(s) = symbol {
-                        assert!(s.clone() == '=');
-                    }
+        tokens.reverse(); // ! has to be done :D, vec doesn't have pop_front and too lazy to refactor to use VecDeque
+        let mut parser = Parser::new(tokens);
 
-                    // value
-                    // todo: get expression
-                    let value = iter.next().expect("nothing after keyword 'let'");
-                    if let LexerToken::Value(val) = value {
-                        return vec![ParserToken::Push(val.clone()), ParserToken::DeclareVariable(identifier.clone())];
-                    }
+        'parse_loop : loop {
+            let token_opt = parser.peek();
+            if token_opt.is_none() {
+                println!("Eof");
+                break 'parse_loop;
+            }
+            let token = token_opt.unwrap();
+            println!("peeked: {:?}", token);
+            
+            if let LexerToken::Keyword(kw) = token {
+                println!("keyword!");
+
+                match kw.as_str() {
+                    "let" => { parser.variable_decleration(); },
+                    _ => { panic!("Unimplumented keyword {}", kw); }
                 }
-                panic!("Not identifier after 'let'");
             }
-            else {
-                panic!("Non implumented keyword: \"{}\"", kw);
+            else 
+            {
+                return AstExpr::evaluate(&mut parser.input);
             }
+
         }
-        else 
-        {
-            return AstExpr::evaluate(&mut tokens);
-        }
+
+        parser.tokens
     }
 
-    fn new() -> Parser { Parser {}}
+    fn variable_decleration(&mut self) {
+        println!("In variable decleration!");
+
+        // 'let' keyword
+        self.eat().unwrap();
+        
+        // identifier
+        let tk_identifier = self.eat().expect("expected an identifier after 'let' keyword");
+        if let LexerToken::Identifier(identifier) = tk_identifier {
+            // symbol '='
+            let symbol = self.eat().expect("expected an identifier after 'let' keyword");
+            if symbol != LexerToken::Symbol('=') {
+                panic!("'=' expected got '{:?}' instead", symbol);
+            }
+            
+            // Get expression
+            let mut expr = self.eat_expr(LexerToken::Symbol(';'));
+            let mut evaluated = AstExpr::evaluate(&mut expr);
+            self.tokens.append(&mut evaluated);
+            self.tokens.push(ParserToken::DeclareVariable(identifier.clone()));
+            return;
+        }
+        panic!("Not identifier after 'let'");
+    }
+
+    /**
+     * Terminator is used to determine when the expression is suppost to end, terminator gets eaten. e.g: 
+     * "LexerToken::Symbol(';')" for "let x = 2+2;"
+     * "LexerToken::Symbol(',')" for "fn foo(2+2+2, 0)"
+     * "LexerToken::Operator(')')" for "fn foo(2+2+2)" // this is going to be a fucking problem, lol.
+     */
+    fn eat_expr(&mut self, terminator: LexerToken) -> Vec<LexerToken> {
+        let mut out_tks = vec![];
+        'get_tokens: loop {
+            let eat_opt = self.eat();
+            if eat_opt.is_none() {
+                panic!("Expected '{:?}' got EOF instead!", terminator);
+            }
+        
+            let token = eat_opt.unwrap().clone();
+            if token == terminator {
+                break 'get_tokens;
+            }
+            out_tks.push(token);
+        }
+
+        return out_tks;
+    }
+
+    fn peek(&self) -> Option<&LexerToken> {
+        if self.input.len() == 0 {
+            return None;
+        }
+        let idx = self.input.len() - 1;
+        self.input.get(idx)
+    }
+
+    fn eat(&mut self) -> Option<LexerToken> {
+        self.input.pop()
+    }
+
+    fn new(tks: Vec<LexerToken>) -> Parser { 
+        Parser {
+            input: tks,
+            tokens: vec![]
+        }
+    }
     
     
 }
