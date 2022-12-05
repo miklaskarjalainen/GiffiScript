@@ -33,11 +33,7 @@ impl Parser {
                 break 'parse_loop;
             }
             let token = token_opt.unwrap();
-            println!("peeked: {:?}", token);
-            
             if let LexerToken::Keyword(kw) = token {
-                println!("keyword!");
-
                 match kw.as_str() {
                     "let" => { parser.variable_decleration(); },
                     _ => { panic!("Unimplumented keyword {}", kw); }
@@ -54,8 +50,6 @@ impl Parser {
     }
 
     fn variable_decleration(&mut self) {
-        println!("In variable decleration!");
-
         // 'let' keyword
         self.eat().unwrap();
         
@@ -75,7 +69,7 @@ impl Parser {
             self.tokens.push(ParserToken::DeclareVariable(identifier.clone()));
             return;
         }
-        panic!("Not identifier after 'let'");
+        panic!("expected an identifier after 'let' keyword");
     }
 
     /**
@@ -120,6 +114,4 @@ impl Parser {
             tokens: vec![]
         }
     }
-    
-    
 }
