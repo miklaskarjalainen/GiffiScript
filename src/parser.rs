@@ -19,8 +19,6 @@ pub enum ParserToken {
 
 impl Parser {
     pub fn parse(mut tokens: Vec<LexerToken>) -> Vec<ParserToken> {
-        let mut parser = Parser::new();
-
         /*
         Todo: Doesn't work without modifications if the source code is directly read from a while,
         but because we're doing this through console ("line by line") it's okay for now
@@ -35,27 +33,21 @@ impl Parser {
                 
                 // identifier
                 let tk_identifier = iter.next().expect("nothing after keyword 'let'");
-                let identifier: String;
-                match tk_identifier {
-                    LexerToken::Identifier(id) => { identifier = id.clone(); }
-                    _ => {
-                        panic!("Not identifier after 'let'");
+                if let LexerToken::Identifier(identifier) = tk_identifier {
+                    // symbol '='
+                    let symbol = iter.next().expect("nothing after keyword 'let'");
+                    if let LexerToken::Symbol(s) = symbol {
+                        assert!(s.clone() == '=');
+                    }
+
+                    // value
+                    // todo: get expression
+                    let value = iter.next().expect("nothing after keyword 'let'");
+                    if let LexerToken::Value(val) = value {
+                        return vec![ParserToken::Push(val.clone()), ParserToken::DeclareVariable(identifier.clone())];
                     }
                 }
-
-                // symbol '='
-                let symbol = iter.next().expect("nothing after keyword 'let'");
-                if let LexerToken::Symbol(s) = symbol {
-                    assert!(s.clone() == '=');
-                }
-
-                // value
-                // todo: get expression
-                let value = iter.next().expect("nothing after keyword 'let'");
-                if let LexerToken::Value(val) = value {
-                    return vec![ParserToken::Push(val.clone()), ParserToken::DeclareVariable(identifier)];
-                }
-                panic!("Unexpected assign!");
+                panic!("Not identifier after 'let'");
             }
             else {
                 panic!("Non implumented keyword: \"{}\"", kw);
