@@ -18,6 +18,26 @@ impl Value {
         }
         Err(ValueE::ParsingError)
     }
+
+    pub fn do_operation(&self, op: &String, other: Value) -> Result<Value, ValueE> {
+        match op.as_str() {
+            "+" => {
+                return self.add(other);
+            }
+            "-" => {
+                return self.sub(other);
+            }
+            "*" => {
+                return self.mul(other);
+            }
+            "/" => {
+                return self.div(other);
+            }
+            _ => {
+                panic!("Invaldi operation");
+            }
+        }
+    }
 }
 
 pub trait ValueAdder<T> {
