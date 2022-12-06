@@ -12,7 +12,7 @@ pub struct Parser {
     tokens: Vec<ParserToken>
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ParserToken {
     DeclareVariable(String), // Pops a value from stack and stores it to stack
     GetVariable(String),     // Pushes the variables value to stack
