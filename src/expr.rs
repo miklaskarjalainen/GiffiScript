@@ -23,7 +23,7 @@ impl AstExpr {
      */
     pub fn evaluate(mut expr: &mut Vec<LexerToken>) -> Vec<ParserToken> {
         // Turns the expressions to a tree
-        let ast = AstExpr::to_ast(&mut expr, 0).expect("error in evaluation");
+        let ast = AstExpr::to_ast(&mut expr, 0);
         
         // Turns the tree into a stack like vector.
         ast.to_tokens()
@@ -69,25 +69,25 @@ impl AstExpr {
         panic!("lol");
     }
 
-    fn to_ast(input: &mut Vec<LexerToken>, prec: u8) -> Option<AstExpr> {
+    fn to_ast(input: &mut Vec<LexerToken>, prec: u8) -> AstExpr {
         if prec >= 2 {
-            return Some(AstExpr::parse_primary(input));
+            return AstExpr::parse_primary(input);
         }
 
-        let lhs = AstExpr::to_ast(input, prec + 1).expect("lhs is none");
+        let lhs = AstExpr::to_ast(input, prec + 1);
         let token_opt = input.pop();
 
         if let Some(token) = token_opt {
             if AstExpr::get_precedence(&token) == prec {
-                let rhs = AstExpr::to_ast(input, prec).expect("rhs is None"); 
-                return Some(AstExpr::new(token, Some(Box::new(lhs)), Some(Box::new(rhs))));
+                let rhs = AstExpr::to_ast(input, prec);
+                return AstExpr::new(token, Some(Box::new(lhs)), Some(Box::new(rhs)));
             }
             else {
                 input.push(token);
             }
         } 
         
-        return Some(lhs);
+        return lhs;
     }
 
     fn get_precedence(tk: &LexerToken) -> u8 {
