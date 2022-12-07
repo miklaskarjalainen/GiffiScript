@@ -52,6 +52,9 @@ impl Interpreter {
             else if let ParserToken::Operation(op) = &token {
                 self.op(op);
             }
+            else if let ParserToken::Return() = &token {
+                break;
+            }
         }
     }
 
@@ -62,9 +65,9 @@ impl Interpreter {
             panic!("A variable named {} already exsts!", var_name);
         }
         let val = self.pop();
-        self.variables.insert(var_name.clone(), val);
+        self.variables.insert(var_name.clone(), val.clone());
 
-        println!("Variable {} declared!", var_name);
+        println!("Variable {}={:?} declared!", var_name, val);
     }
 
     fn declare_function(&mut self, fn_name: &String, fn_body: &Vec<ParserToken>) {
