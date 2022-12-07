@@ -82,11 +82,7 @@ impl Parser {
     }
 
     fn function_call(&mut self, fn_name: String) {
-        // Parse Arguments
-        
-
-
-
+        // TODO: Parse Arguments
         let rparen = self.eat().expect("Syntax Error");
         if rparen != LexerToken::Operator(")".to_string()) {
             panic!("Expected ')' got {:?} instead!", rparen);
