@@ -21,9 +21,8 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn lex(code: String) -> Result<VecDeque<LexerToken>, String> {
+    pub fn lex(code: String) -> VecDeque<LexerToken> {
         let mut lexer = Lexer::new();
-
 
         for c in code.chars() {
             if c.is_whitespace() {
@@ -48,7 +47,7 @@ impl Lexer {
         }
         lexer.flush();
 
-        Ok(lexer.lexer_tokens)
+        lexer.lexer_tokens
     }
 
     fn new() -> Lexer {
