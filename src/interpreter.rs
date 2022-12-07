@@ -1,10 +1,8 @@
-use std::collections::{HashMap, VecDeque};
-use std::hash::Hash;
+use std::collections::{HashMap};
 use std::process::exit;
 
 use crate::parser::{ParserToken};
-use crate::lexer::{LexerToken};
-use crate::value::{Value, self, ValueAdder};
+use crate::value::{Value};
 
 pub struct Interpreter {
     funcs: HashMap<String, Vec<ParserToken>>,

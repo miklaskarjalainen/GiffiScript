@@ -1,10 +1,7 @@
 use core::panic;
-use std::collections::{HashMap, VecDeque};
-use std::default;
-use serde::{Deserialize, Serialize};
+use std::collections::{VecDeque};
 
-use crate::lexer::{LexerToken, Lexer};
-use crate::interpreter::{Interpreter};
+use crate::lexer::{LexerToken};
 use crate::value::Value;
 use crate::expr::{AstExpr};
 

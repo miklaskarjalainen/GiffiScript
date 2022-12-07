@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
-use std::{env, process::exit, io::{self, Write}, fs};
+use std::{env, io::{self, Write}};
 
 mod expr;
 mod value;

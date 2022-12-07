@@ -121,8 +121,8 @@ impl AstExpr {
 mod test {
     use std::collections::VecDeque;
 
-    use crate::lexer::{Lexer, LexerToken};
-    use crate::parser::{ParserToken, Parser};
+    use crate::lexer::{LexerToken};
+    use crate::parser::{ParserToken};
     use crate::value::Value;
     use super::AstExpr;
 
