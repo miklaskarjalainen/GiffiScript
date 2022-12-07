@@ -54,15 +54,20 @@ impl Interpreter {
     }
 
     fn call_function(&mut self, fn_name: &String) {
-        assert!(self.funcs.contains_key(fn_name), "No function with this name was found :-(");
-
         self.start_scope();
-        let tks = self.funcs[fn_name].clone();
+        
+        if fn_name == "print" {
+            println!("| PRINT: {:?} |", self.pop());
+            return;
+        }
+        let tks = self.funcs.get(fn_name).expect("No function found!").clone();
         self.execute_tokens(&tks);
+        self.end_scope();
     }
 
     fn return_function(&mut self) {
-        self.end_scope();
+        // TODO: return a value to the stack.
+        // self.end_scope();
     }
 
     fn declare_variable(&mut self, var_name: &String) {
@@ -74,7 +79,6 @@ impl Interpreter {
             panic!("A variable named {} already exsts!", var_name);
         }
         scope.insert(var_name.clone(), val.clone());
-        println!("Variable {}={:?} declared!", var_name, val);
     }
 
     fn declare_function(&mut self, fn_name: &String, fn_body: &Vec<ParserToken>) {
@@ -82,7 +86,6 @@ impl Interpreter {
             panic!("A function named {} already exsts!", fn_name);
         }
         self.funcs.insert(fn_name.clone(), fn_body.clone());
-        println!("Function {} declared!", fn_name);
     }
 
     /**
@@ -127,11 +130,9 @@ impl Interpreter {
         let ur = r.unwrap();
 
         self.push(ur.clone());
-        println!("Operation Result: {:?}", ur);
     }
 
     fn push(&mut self, val: Value) {
-        println!("Pushed {:?}", val);
         self.stack.push(val);
     }
 
