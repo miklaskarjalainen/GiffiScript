@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::process::exit;
 
 use crate::parser::{ParserToken};
@@ -6,6 +7,7 @@ use crate::lexer::{LexerToken};
 use crate::value::{Value, self, ValueAdder};
 
 pub struct Interpreter {
+    funcs: HashMap<String, Vec<ParserToken>>,
     variables: HashMap<String, Value>,
     stack: Vec<Value>
 }
@@ -13,10 +15,16 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new() -> Interpreter {
         let mut int = Interpreter { 
+            funcs: HashMap::new(),
             variables: HashMap::new(),
             stack: vec![]
         };
-        int.variables.insert("lol".to_string(), Value::Int(9));
+
+        int.funcs.insert("test".to_string(), vec![
+            ParserToken::Push(Value::Int(5)),
+            ParserToken::Push(Value::Int(6)),
+            ParserToken::Operation("*".to_string())
+        ]);
         return int;
     }
 
@@ -27,6 +35,12 @@ impl Interpreter {
             }
             else if let ParserToken::Pop() = token {
                 self.pop();
+            }
+            else if let ParserToken::Call(func_name, _arg_count) = token {
+                println!("Calling function {}", func_name);
+                assert!(self.funcs.contains_key(func_name), "No function with this name was found :-(");
+                let tks = self.funcs[func_name].clone();
+                self.execute_tokens(&tks);
             }
             else if let ParserToken::GetVariable(var_name) = token {
                 self.get_variable(var_name);
