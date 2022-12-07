@@ -80,24 +80,9 @@ impl Interpreter {
     fn op(&mut self, op: &String) {
         assert!(self.stack.len() >= 2, "not enough arguments to do an operation");
 
-        let frst = self.pop();
-        let scnd = self.pop();
-        let r;
-        if op == "+" {
-            r = frst.add(scnd);
-        }
-        else if op == "-" {
-            r = frst.sub(scnd);
-        }
-        else if op == "*" {
-            r = frst.mul(scnd);
-        }
-        else if op == "/" {
-            r = frst.div(scnd);
-        }
-        else {
-            panic!("invalid operator {}", op); 
-        }
+        let rhs = self.pop();
+        let lhs = self.pop();
+        let r = lhs.do_operation(op, rhs);
 
         if r.is_err() {
             println!("Error when executing an operator {:?}", r.unwrap_err());
