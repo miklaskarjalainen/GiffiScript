@@ -104,9 +104,29 @@ impl Parser {
             // eat operator '('
             self.eat_expect(LexerToken::Operator("(".to_string()));
 
-            // TODO: Args
-            
-            self.eat_expect(LexerToken::Operator(")".to_string()));
+            // get argument names
+            let mut fn_args: Vec<String> = vec![];
+            'args : loop {
+                let tk = self.eat().expect("Invalid function decleration");
+
+                if let LexerToken::Identifier(arg_identifier) = tk {
+                    fn_args.push(arg_identifier);
+                    let peek = self.eat().expect("Invalid function decleration");
+                    if peek == LexerToken::Symbol(',') {
+                        continue;
+                    }
+                    else if peek == LexerToken::Operator(")".to_string()) {
+                        break 'args;
+                    }
+                    panic!("Syntax error");
+                }
+                else if tk == LexerToken::Operator(")".to_string()) {
+                    break 'args;
+                }
+                else {
+                    panic!("Syntax error");
+                }
+            }
             self.eat_expect(LexerToken::Symbol('{'));
 
             let fn_body = self.parse_until(LexerToken::Symbol('}'));
