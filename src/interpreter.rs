@@ -82,6 +82,10 @@ impl Interpreter {
     }
 
     fn declare_function(&mut self, fn_name: &String, fn_body: &Vec<ParserToken>) {
+        if self.get_scope_count() > 1 {
+            panic!("Function declerations only allowed in the global scope!");
+        }
+
         if self.funcs.contains_key(fn_name) {
             panic!("A function named {} already exsts!", fn_name);
         }
@@ -102,6 +106,10 @@ impl Interpreter {
             return;
         }
         panic!("No variable called {}", var_name);
+    }
+
+    fn get_scope_count(&self) -> usize {
+        self.variables.len()
     }
 
     fn get_scope(&mut self) -> &mut Variables {
