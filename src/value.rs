@@ -8,6 +8,7 @@ pub enum ValueE {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Int(i64),
+    Litreal(String),
     Null,
 }
 
