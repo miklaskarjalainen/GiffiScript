@@ -1,4 +1,5 @@
 use crate::value::Value;
+use std::collections::{VecDeque};
 
 const SYMBOLS: [char; 7] = ['{', '}', '=', '.', ',', ':', ';'];
 const OPERATORS: [&'static str; 6] = ["+", "-", "/", "*", "(", ")"]; // Not chars cuz need to add operators like "&&", "||"
@@ -16,11 +17,11 @@ pub enum LexerToken {
 #[derive(Debug)]
 pub struct Lexer {
     current_word: String,
-    lexer_tokens: Vec<LexerToken>
+    lexer_tokens: VecDeque<LexerToken>
 }
 
 impl Lexer {
-    pub fn lex(code: String) -> Result<Vec<LexerToken>, String> {
+    pub fn lex(code: String) -> Result<VecDeque<LexerToken>, String> {
         let mut lexer = Lexer::new();
 
 
@@ -53,7 +54,7 @@ impl Lexer {
     fn new() -> Lexer {
         Lexer{
             current_word: String::from(""),
-            lexer_tokens: vec![]
+            lexer_tokens: VecDeque::new()
         }
     }
 
@@ -80,7 +81,7 @@ impl Lexer {
     }
 
     fn push_token(&mut self, tk: LexerToken) {
-        self.lexer_tokens.push(tk);
+        self.lexer_tokens.push_back(tk);
     }
 
 }

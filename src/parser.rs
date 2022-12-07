@@ -1,5 +1,5 @@
 use core::panic;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::default;
 use serde::{Deserialize, Serialize};
 
@@ -9,7 +9,7 @@ use crate::value::Value;
 use crate::expr::{AstExpr};
 
 pub struct Parser {
-    input: Vec<LexerToken>,
+    input: VecDeque<LexerToken>,
     tokens: Vec<ParserToken>
 }
 
@@ -25,8 +25,7 @@ pub enum ParserToken {
 }
 
 impl Parser {
-    pub fn parse(mut tokens: Vec<LexerToken>) -> Vec<ParserToken> {
-        tokens.reverse(); // ! has to be done :D, vec doesn't have pop_front and too lazy to refactor to use VecDeque
+    pub fn parse(tokens: VecDeque<LexerToken>) -> Vec<ParserToken> {
         let mut parser = Parser::new(tokens);
 
         'parse_loop : loop {
@@ -47,7 +46,8 @@ impl Parser {
             }
             else 
             {
-                return AstExpr::evaluate(&mut parser.input);
+                let mut expr = parser.eat_expr(vec![LexerToken::Symbol(';')]);
+                return AstExpr::evaluate(&mut expr);
             }
 
             if parser.input.len() == 0 {
@@ -97,8 +97,8 @@ impl Parser {
      * "LexerToken::Symbol(',')" for "fn foo(2+2+2, 0)"
      * "LexerToken::Operator(')')" for "fn foo(2+2+2)" // this is going to be a fucking problem, lol.
      */
-    fn eat_expr(&mut self, terminator: Vec<LexerToken>) -> Vec<LexerToken> {
-        let mut out_tks = vec![];
+    fn eat_expr(&mut self, terminator: Vec<LexerToken>) -> VecDeque<LexerToken> {
+        let mut out_tks = VecDeque::new();
         'get_tokens: loop {
             let peeked = self.peek();
             if peeked.is_none() {
@@ -109,9 +109,8 @@ impl Parser {
             }
 
             let token = self.eat().unwrap();
-            out_tks.push(token);
+            out_tks.push_back(token);
         }
-
         return out_tks;
     }
 
@@ -119,12 +118,11 @@ impl Parser {
         if self.input.len() == 0 {
             return None;
         }
-        let idx = self.input.len() - 1;
-        self.input.get(idx)
+        self.input.front()
     }
 
     fn eat_checked(&mut self) -> LexerToken {
-        let popped = self.input.pop();
+        let popped = self.eat();
         if popped.is_none() {
             panic!("Got unexpected EOF");
         }
@@ -132,7 +130,7 @@ impl Parser {
     }
 
     fn eat_expect(&mut self, expect: LexerToken) -> LexerToken {
-        let popped = self.input.pop();
+        let popped = self.eat();
         if popped.is_none() {
             panic!("Expected {:?} got EOF instead!", expect);
         }
@@ -144,10 +142,10 @@ impl Parser {
     }
 
     fn eat(&mut self) -> Option<LexerToken> {
-        self.input.pop()
+        self.input.pop_front()
     }
 
-    fn new(tks: Vec<LexerToken>) -> Parser { 
+    fn new(tks: VecDeque<LexerToken>) -> Parser { 
         Parser {
             input: tks,
             tokens: vec![]

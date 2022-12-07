@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::hash::Hash;
 use std::process::exit;
 
@@ -80,8 +80,8 @@ impl Interpreter {
     fn op(&mut self, op: &String) {
         assert!(self.stack.len() >= 2, "not enough arguments to do an operation");
 
-        let rhs = self.pop();
         let lhs = self.pop();
+        let rhs = self.pop();
         let r = lhs.do_operation(op, rhs);
 
         if r.is_err() {
