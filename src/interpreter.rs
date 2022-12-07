@@ -46,6 +46,9 @@ impl Interpreter {
             else if let ParserToken::DeclareVariable(var_name) = token {
                 self.declare_variable(var_name);
             }
+            else if let ParserToken::DeclareFunction(fn_name, fn_body) = token {
+                self.declare_function(fn_name, fn_body);
+            }
             else if let ParserToken::Operation(op) = &token {
                 self.op(op);
             }
@@ -62,6 +65,14 @@ impl Interpreter {
         self.variables.insert(var_name.clone(), val);
 
         println!("Variable {} declared!", var_name);
+    }
+
+    fn declare_function(&mut self, fn_name: &String, fn_body: &Vec<ParserToken>) {
+        if self.funcs.contains_key(fn_name) {
+            panic!("A function named {} already exsts!", fn_name);
+        }
+        self.funcs.insert(fn_name.clone(), fn_body.clone());
+        println!("Function {} declared!", fn_name);
     }
 
     /**

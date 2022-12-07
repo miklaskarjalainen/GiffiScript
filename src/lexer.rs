@@ -3,7 +3,7 @@ use std::collections::{VecDeque};
 
 const SYMBOLS: [char; 7] = ['{', '}', '=', '.', ',', ':', ';'];
 const OPERATORS: [&'static str; 6] = ["+", "-", "/", "*", "(", ")"]; // Not chars cuz need to add operators like "&&", "||"
-const KEYWORDS: [&'static str; 1] = ["let"];
+const KEYWORDS: [&'static str; 3] = ["let", "return", "fn"];
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LexerToken {
@@ -11,7 +11,8 @@ pub enum LexerToken {
     Value(Value),
     Symbol(char),
     Operator(String),
-    Identifier(String)
+    Identifier(String),
+    Eof()
 }
 
 #[derive(Debug)]
@@ -46,7 +47,8 @@ impl Lexer {
             lexer.current_word.push(c);
         }
         lexer.flush();
-
+        
+        lexer.lexer_tokens.push_back(LexerToken::Eof());
         lexer.lexer_tokens
     }
 

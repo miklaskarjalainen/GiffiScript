@@ -7,12 +7,12 @@ use crate::expr::{AstExpr};
 
 pub struct Parser {
     input: VecDeque<LexerToken>,
-    tokens: Vec<ParserToken>
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ParserToken {
     DeclareVariable(String), // Pops a value from stack and stores it to stack
+    DeclareFunction(String, Vec<ParserToken>),
     GetVariable(String),     // Pushes the variables value to stack
     Operation(String),       // Pops 2 values from stack as arguments and pushes a result
     Push(Value),
@@ -24,39 +24,52 @@ pub enum ParserToken {
 impl Parser {
     pub fn parse(tokens: VecDeque<LexerToken>) -> Vec<ParserToken> {
         let mut parser = Parser::new(tokens);
+        parser.parse_until(LexerToken::Eof())
+    }
 
+    /**
+     * Doesn't not append to tokens, like parse does.
+     */
+    fn parse_until(&mut self, tk: LexerToken) -> Vec<ParserToken> {
+        let mut tokens = vec![];
         'parse_loop : loop {
-            let token = parser.peek().unwrap();
+            let token = self.peek().expect("Unexpted end of file");
+            if token == &tk {
+                break 'parse_loop;
+            }
             
             if let LexerToken::Keyword(kw) = token {
                 match kw.as_str() {
-                    "let" => { parser.variable_decleration(); },
+                    "let" => { 
+                        tokens.append(&mut self.variable_decleration());
+                    },
+                    "fn" => { 
+                        tokens.append(&mut self.function_decleration());
+                    },
                     _ => { panic!("Unimplumented keyword {}", kw); }
                 }
             }
             else if let LexerToken::Identifier(fn_name) = token.clone() {
-                parser.eat(); // Identifier
-                let next = parser.eat().expect("Syntax error");
+                self.eat(); // Identifier
+                let next = self.eat().expect("Syntax error");
                 if LexerToken::Operator("(".to_string()) == next {
-                    parser.function_call(fn_name.clone());
+                    tokens.append(&mut self.function_call(fn_name.clone()));
                 }
             }
             else 
             {
-                let mut expr = parser.eat_expr(vec![LexerToken::Symbol(';')]);
+                let mut expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
                 return AstExpr::evaluate(&mut expr);
             }
-
-            if parser.input.len() == 0 {
-                break 'parse_loop;
-            }
         }
-
-        parser.tokens
+        tokens
     }
 
-    fn variable_decleration(&mut self) {
-        // 'let' is already eaten
+    #[must_use]
+    fn variable_decleration(&mut self) -> Vec<ParserToken> {
+        let mut tokens = vec![];
+
+        // eat "let" keyword
         self.eat();
 
         // identifier
@@ -68,24 +81,49 @@ impl Parser {
             // Get expression
             let mut expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
             let mut evaluated = AstExpr::evaluate(&mut expr);
-            self.tokens.append(&mut evaluated);
-            self.tokens.push(ParserToken::DeclareVariable(identifier.clone()));
 
             // symbol ';'
             self.eat_expect(LexerToken::Symbol(';'));
-            return;
+
+            // push ParserTokens
+            tokens.append(&mut evaluated);
+            tokens.push(ParserToken::DeclareVariable(identifier.clone()));
+            return tokens;
         }
         panic!("expected an identifier after 'let' keyword");
     }
 
-    fn function_call(&mut self, fn_name: String) {
-        // TODO: Parse Arguments
-        let rparen = self.eat().expect("Syntax Error");
-        if rparen != LexerToken::Operator(")".to_string()) {
-            panic!("Expected ')' got {:?} instead!", rparen);
-        }
+    #[must_use]
+    fn function_decleration(&mut self) -> Vec<ParserToken> {
+        // eat "fn" keyword
+        self.eat();
 
-        self.tokens.push(ParserToken::Call(fn_name, 0));
+        // identifier
+        let tk_identifier = self.eat().expect("expected an identifier after 'fn' keyword");
+        if let LexerToken::Identifier(fn_name) = tk_identifier {
+            // eat operator '('
+            self.eat_expect(LexerToken::Operator("(".to_string()));
+
+            // TODO: Args
+            
+            self.eat_expect(LexerToken::Operator(")".to_string()));
+            self.eat_expect(LexerToken::Symbol('{'));
+
+            let fn_body = self.parse_until(LexerToken::Symbol('}'));
+            self.eat_expect(LexerToken::Symbol('}'));
+
+            // push tokens
+            return vec![(ParserToken::DeclareFunction(fn_name, fn_body))];
+        }
+        panic!("expected an identifier after 'fn' keyword");
+    }
+
+    #[must_use]
+    fn function_call(&mut self, fn_name: String) -> Vec<ParserToken> {
+        // TODO: Parse Arguments
+        self.eat_expect(LexerToken::Operator(")".to_string()));
+        self.eat_expect(LexerToken::Symbol(';'));
+        return vec![ParserToken::Call(fn_name, 0)];
     }
 
     /**
@@ -145,7 +183,6 @@ impl Parser {
     fn new(tks: VecDeque<LexerToken>) -> Parser { 
         Parser {
             input: tks,
-            tokens: vec![]
         }
     }
 }
