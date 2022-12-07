@@ -17,7 +17,7 @@ pub enum ParserToken {
     Operation(String),       // Pops 2 values from stack as arguments and pushes a result
     Push(Value),
     Pop(),
-    Call(String, u8),        // Second argument for amount of arguments
+    Call(String),        // Second argument for amount of arguments
     Return(),
 }
 
@@ -152,6 +152,7 @@ impl Parser {
     #[must_use]
     fn function_call(&mut self, fn_name: String) -> Vec<ParserToken> {
         // get argument names
+        let mut arg_cout = 0u8;
         let mut tokens = vec![];
         'args : loop {
             let tk = self.peek().expect("Invalid function decleration");
@@ -164,6 +165,7 @@ impl Parser {
                 let mut argument = self.eat_expr(vec![LexerToken::Symbol(','), LexerToken::Operator(")".to_string())]);
                 let mut evaluated = AstExpr::evaluate(&mut argument);
                 tokens.append(&mut evaluated);
+                arg_cout += 1;
 
                 let next = self.eat().expect("syntax error");
                 if next == LexerToken::Symbol(',') {
@@ -180,7 +182,7 @@ impl Parser {
 
         self.eat_expect(LexerToken::Symbol(';'));
 
-        tokens.push(ParserToken::Call(fn_name, 0));
+        tokens.push(ParserToken::Call(fn_name));
         return tokens;
     }
 

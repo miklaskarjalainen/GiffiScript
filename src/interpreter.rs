@@ -1,12 +1,13 @@
-use std::collections::{HashMap};
+use std::collections::{HashMap, VecDeque};
 use std::process::exit;
 
 use crate::parser::{ParserToken};
 use crate::value::{Value};
 
+type Variables = HashMap<String, Value>;
 pub struct Interpreter {
     funcs: HashMap<String, Vec<ParserToken>>,
-    variables: HashMap<String, Value>,
+    variables: VecDeque<Variables>,
     stack: Vec<Value>
 }
 
@@ -14,15 +15,11 @@ impl Interpreter {
     pub fn new() -> Interpreter {
         let mut int = Interpreter { 
             funcs: HashMap::new(),
-            variables: HashMap::new(),
+            variables: VecDeque::new(),
             stack: vec![]
         };
-
-        int.funcs.insert("test".to_string(), vec![
-            ParserToken::Push(Value::Int(5)),
-            ParserToken::Push(Value::Int(6)),
-            ParserToken::Operation("*".to_string())
-        ]);
+        // Global Variable Scope
+        int.start_scope();
         return int;
     }
 
@@ -34,11 +31,8 @@ impl Interpreter {
             else if let ParserToken::Pop() = token {
                 self.pop();
             }
-            else if let ParserToken::Call(func_name, _arg_count) = token {
-                println!("Calling function {}", func_name);
-                assert!(self.funcs.contains_key(func_name), "No function with this name was found :-(");
-                let tks = self.funcs[func_name].clone();
-                self.execute_tokens(&tks);
+            else if let ParserToken::Call(func_name) = token {
+                self.call_function(func_name)
             }
             else if let ParserToken::GetVariable(var_name) = token {
                 self.get_variable(var_name);
@@ -53,20 +47,33 @@ impl Interpreter {
                 self.op(op);
             }
             else if let ParserToken::Return() = &token {
+                self.return_function();
                 break;
             }
         }
     }
 
+    fn call_function(&mut self, fn_name: &String) {
+        assert!(self.funcs.contains_key(fn_name), "No function with this name was found :-(");
+
+        self.start_scope();
+        let tks = self.funcs[fn_name].clone();
+        self.execute_tokens(&tks);
+    }
+
+    fn return_function(&mut self) {
+        self.end_scope();
+    }
+
     fn declare_variable(&mut self, var_name: &String) {
         assert!(self.stack.len() > 0);
 
-        if self.variables.contains_key(var_name) {
+        let val = self.pop();
+        let scope = self.get_scope();
+        if scope.contains_key(var_name) {
             panic!("A variable named {} already exsts!", var_name);
         }
-        let val = self.pop();
-        self.variables.insert(var_name.clone(), val.clone());
-
+        scope.insert(var_name.clone(), val.clone());
         println!("Variable {}={:?} declared!", var_name, val);
     }
 
@@ -82,11 +89,28 @@ impl Interpreter {
      * Gets pushed onto stack
      */
     fn get_variable(&mut self, var_name: &String) {
-        if !self.variables.contains_key(var_name) {
-            panic!("No variable called {}", var_name);
+        for idx in 0..self.variables.len() {
+            let variables = self.variables.get(idx).unwrap();
+            let val = variables.get(var_name);
+            if val.is_none() {
+                continue;
+            }
+            self.push(val.unwrap().clone());
+            return;
         }
-        let val = self.variables.get(var_name).unwrap().clone();
-        self.push(val);
+        panic!("No variable called {}", var_name);
+    }
+
+    fn get_scope(&mut self) -> &mut Variables {
+        self.variables.front_mut().unwrap()
+    }
+
+    fn start_scope(&mut self) {
+        self.variables.push_front(HashMap::new());
+    }
+
+    fn end_scope(&mut self) {
+        self.variables.pop_front();
     }
 
     fn op(&mut self, op: &String) {
