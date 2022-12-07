@@ -18,7 +18,7 @@ pub enum ParserToken {
     Push(Value),
     Pop(),
     Call(String, u8),        // Second argument for amount of arguments
-    Ret(),
+    Return(),
 }
 
 impl Parser {
@@ -45,6 +45,11 @@ impl Parser {
                     },
                     "fn" => { 
                         tokens.append(&mut self.function_decleration());
+                    },
+                    "return" => { 
+                        self.eat_expect(LexerToken::Keyword("return".to_string()));
+                        self.eat_expect(LexerToken::Symbol(';'));
+                        tokens.push(ParserToken::Return());
                     },
                     _ => { panic!("Unimplumented keyword {}", kw); }
                 }
@@ -105,17 +110,20 @@ impl Parser {
             self.eat_expect(LexerToken::Operator("(".to_string()));
 
             // get argument names
-            let mut fn_args: Vec<String> = vec![];
+            let mut fn_tokens: Vec<ParserToken> = vec![];
             'args : loop {
                 let tk = self.eat().expect("Invalid function decleration");
 
                 if let LexerToken::Identifier(arg_identifier) = tk {
-                    fn_args.push(arg_identifier);
-                    let peek = self.eat().expect("Invalid function decleration");
-                    if peek == LexerToken::Symbol(',') {
+                    // When calling the function the values are pushed to the stack, here just use them to declare 
+                    // variables out of them (btw this has to be done in a reverse order, hence the reverse after the loop)
+                    fn_tokens.push(ParserToken::DeclareVariable(arg_identifier));
+
+                    let next  = self.eat().expect("Invalid function decleration");
+                    if next == LexerToken::Symbol(',') {
                         continue;
                     }
-                    else if peek == LexerToken::Operator(")".to_string()) {
+                    else if next == LexerToken::Operator(")".to_string()) {
                         break 'args;
                     }
                     panic!("Syntax error");
@@ -127,23 +135,53 @@ impl Parser {
                     panic!("Syntax error");
                 }
             }
-            self.eat_expect(LexerToken::Symbol('{'));
+            fn_tokens.reverse();
 
-            let fn_body = self.parse_until(LexerToken::Symbol('}'));
+            self.eat_expect(LexerToken::Symbol('{'));
+            let mut fn_body = self.parse_until(LexerToken::Symbol('}'));
             self.eat_expect(LexerToken::Symbol('}'));
 
+            fn_tokens.append(&mut fn_body);
+            
             // push tokens
-            return vec![(ParserToken::DeclareFunction(fn_name, fn_body))];
+            return vec![(ParserToken::DeclareFunction(fn_name, fn_tokens))];
         }
         panic!("expected an identifier after 'fn' keyword");
     }
 
     #[must_use]
     fn function_call(&mut self, fn_name: String) -> Vec<ParserToken> {
-        // TODO: Parse Arguments
-        self.eat_expect(LexerToken::Operator(")".to_string()));
+        // get argument names
+        let mut tokens = vec![];
+        'args : loop {
+            let tk = self.peek().expect("Invalid function decleration");
+
+            if tk == &LexerToken::Operator(")".to_string()) {
+                self.eat().unwrap();
+                break 'args;
+            }
+            else {
+                let mut argument = self.eat_expr(vec![LexerToken::Symbol(','), LexerToken::Operator(")".to_string())]);
+                let mut evaluated = AstExpr::evaluate(&mut argument);
+                tokens.append(&mut evaluated);
+
+                let next = self.eat().expect("syntax error");
+                if next == LexerToken::Symbol(',') {
+                    continue;
+                }
+                else if next == LexerToken::Operator(")".to_string()) {
+                    break 'args;
+                }
+                else {
+                    panic!("Syntax error");
+                }
+            }
+        }
+
         self.eat_expect(LexerToken::Symbol(';'));
-        return vec![ParserToken::Call(fn_name, 0)];
+
+        tokens.push(ParserToken::Call(fn_name, 0));
+        return tokens;
     }
 
     /**
