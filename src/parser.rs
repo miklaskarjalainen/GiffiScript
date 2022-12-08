@@ -48,9 +48,7 @@ impl Parser {
                         tokens.append(&mut self.function_decleration());
                     },
                     "return" => { 
-                        self.eat_expect(LexerToken::Keyword("return".to_string()));
-                        self.eat_expect(LexerToken::Symbol(';'));
-                        tokens.push(ParserToken::Return());
+                        tokens.append(&mut self.function_return());
                     },
                     _ => { panic!("Unimplumented keyword {}", kw); }
                 }
@@ -73,6 +71,22 @@ impl Parser {
                 return AstExpr::evaluate(&mut expr);
             }
         }
+        tokens
+    }
+
+    fn function_return(&mut self) -> Vec<ParserToken> {
+        self.eat_expect(LexerToken::Keyword("return".to_string()));
+        let mut expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
+        self.eat_expect(LexerToken::Symbol(';'));
+
+        let mut tokens;
+        if expr.len() > 0 {
+            tokens = AstExpr::evaluate(&mut expr);
+        }
+        else {
+            tokens = vec![ParserToken::Push(Value::Null)];
+        }
+        tokens.push(ParserToken::Return());
         tokens
     }
 
