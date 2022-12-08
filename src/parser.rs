@@ -12,6 +12,7 @@ pub struct Parser {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ParserToken {
     DeclareVariable(String), // Pops a value from stack and stores it to stack
+    StoreVariable(String),   // Pops and stores it
     DeclareFunction(String, Vec<ParserToken>),
     GetVariable(String),     // Pushes the variables value to stack
     Operation(String),       // Pops 2 values from stack as arguments and pushes a result
@@ -54,12 +55,17 @@ impl Parser {
                     _ => { panic!("Unimplumented keyword {}", kw); }
                 }
             }
-            else if let LexerToken::Identifier(fn_name) = token.clone() {
+            else if let LexerToken::Identifier(ident) = token.clone() {
                 self.eat(); // Identifier
                 let next = self.eat().expect("Syntax error");
-                if LexerToken::Operator("(".to_string()) == next {
-                    tokens.append(&mut self.function_call(fn_name.clone()));
+                if let LexerToken::Operator(op) = next {
+                    match op.as_str() {
+                        "=" => { tokens.append(&mut self.variable_assignment(ident)); }
+                        "(" => { tokens.append(&mut self.function_call(ident.clone())); }
+                        _ => { panic!("Invalid operator!"); }
+                    }
                 }
+                
             }
             else 
             {
@@ -67,6 +73,15 @@ impl Parser {
                 return AstExpr::evaluate(&mut expr);
             }
         }
+        tokens
+    }
+
+    fn variable_assignment(&mut self, var_name: String) -> Vec<ParserToken> {
+        println!("variable assignment!");
+        let mut expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
+        let mut tokens = AstExpr::evaluate(&mut expr);
+        tokens.push(ParserToken::StoreVariable(var_name));
+        self.eat_expect(LexerToken::Symbol(';'));
         tokens
     }
 
@@ -81,7 +96,7 @@ impl Parser {
         let tk_identifier = self.eat().expect("expected an identifier after 'let' keyword");
         if let LexerToken::Identifier(identifier) = tk_identifier {
             // symbol '='
-            self.eat_expect(LexerToken::Symbol('='));
+            self.eat_expect(LexerToken::Operator("=".to_string()));
             
             // Get expression
             let mut expr = self.eat_expr(vec![LexerToken::Symbol(';')]);

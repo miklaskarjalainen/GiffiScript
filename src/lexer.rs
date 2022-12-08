@@ -1,8 +1,8 @@
 use crate::value::Value;
 use std::collections::{VecDeque};
 
-const SYMBOLS: [char; 7] = ['{', '}', '=', '.', ',', ':', ';'];
-const OPERATORS: [&'static str; 6] = ["+", "-", "/", "*", "(", ")"]; // Not chars cuz need to add operators like "&&", "||"
+const SYMBOLS: [char; 6] = ['{', '}', '.', ',', ':', ';'];
+const OPERATORS: [&'static str; 7] = ["+", "-", "/", "*", "(", ")", "="]; // Not chars cuz need to add operators like "&&", "||"
 const KEYWORDS: [&'static str; 3] = ["let", "return", "fn"];
 
 #[derive(Debug, Clone, PartialEq)]

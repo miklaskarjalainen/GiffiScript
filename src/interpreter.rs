@@ -50,6 +50,9 @@ impl Interpreter {
                 self.return_function();
                 break;
             }
+            else if let ParserToken::StoreVariable(var_name) = &token {
+                self.store_variable(var_name);
+            }
         }
     }
 
@@ -67,7 +70,21 @@ impl Interpreter {
 
     fn return_function(&mut self) {
         // TODO: return a value to the stack.
-        // self.end_scope();
+    }
+
+    fn store_variable(&mut self, var_name: &String) {
+        let val = self.pop();
+
+        for idx in 0..self.variables.len() {
+            let variables = self.variables.get_mut(idx).unwrap();
+            let exists = variables.contains_key(var_name);
+            if !exists {
+                continue;
+            }
+            *variables.get_mut(var_name).unwrap() = val;
+            return;
+        }
+        panic!("No variable called {}", var_name);
     }
 
     fn declare_variable(&mut self, var_name: &String) {
