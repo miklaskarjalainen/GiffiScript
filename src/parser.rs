@@ -25,7 +25,7 @@ pub enum ParserToken {
 impl Parser {
     pub fn parse(tokens: VecDeque<LexerToken>) -> Vec<ParserToken> {
         let mut parser = Parser::new(tokens);
-        parser.parse_until(LexerToken::Eof())
+        parser.parse_until(LexerToken::Eof)
     }
 
     /**
@@ -68,7 +68,7 @@ impl Parser {
             }
             else 
             {
-                let mut expr = self.eat_expr(vec![LexerToken::Symbol(';'), LexerToken::Eof()]);
+                let mut expr = self.eat_expr(vec![LexerToken::Symbol(';'), LexerToken::Eof]);
                 return AstExpr::evaluate(&mut expr);
             }
         }
@@ -229,7 +229,7 @@ impl Parser {
         'get_tokens: loop {
             let peeked = self.peek();
             if peeked.is_none() {
-                if terminator.contains(&LexerToken::Eof()) {
+                if terminator.contains(&LexerToken::Eof) {
                     break 'get_tokens;
                 }
                 panic!("Expected '{:?}' got EOF instead!", terminator);

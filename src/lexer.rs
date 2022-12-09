@@ -12,7 +12,7 @@ pub enum LexerToken {
     Symbol(char),
     Operator(String),
     Identifier(String),
-    Eof()
+    Eof
 }
 
 #[derive(Debug)]
@@ -64,7 +64,7 @@ impl Lexer {
             panic!("String literal is missing a '\"'");
         }
         
-        lexer.lexer_tokens.push_back(LexerToken::Eof());
+        lexer.lexer_tokens.push_back(LexerToken::Eof);
         lexer.lexer_tokens
     }
 
