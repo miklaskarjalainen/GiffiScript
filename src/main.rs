@@ -22,12 +22,11 @@ fn get_line() -> String {
 }
 
 fn main() {
-    println!("Giffi's awesome intepreter has been started");
-
     let mut machine = giffiscript::GiffiScript::new();
     
     // run file
-    let args: Vec<String> = env::args().collect();
+    let mut args: Vec<String> = env::args().collect();
+    args.push("./program.gs".to_string());
     if args.len() > 1 {
         let code = std::fs::read_to_string(&args[1]);
         if code.is_err() {
@@ -38,6 +37,7 @@ fn main() {
     }
     
     // cmd interpreter
+    println!("Giffi's awesome intepreter has been started");
     loop {
         let st = get_line();
         let code = st.replace("\n", "");
