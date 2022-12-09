@@ -18,9 +18,8 @@ impl GiffiScript {
         println!("Lexer: {:?}", ltokens);
 
         let ptokens = Parser::parse(ltokens);
-        println!("ptokens: {:?}", ptokens);
+        println!("Parser: {:?}", ptokens);
 
         self.interpreter.execute_tokens(&ptokens);
     }
-
 }
