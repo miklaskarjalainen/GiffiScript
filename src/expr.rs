@@ -53,7 +53,7 @@ impl AstExpr {
         else if let ParserToken::GetVariable(_) = &token {
             return AstExpr::new(token, None, None);
         }
-        else if let ParserToken::Call(_) = &token {
+        else if let ParserToken::Call(_, _) = &token {
             return AstExpr::new(token, None, None);
         }
         // TODO: do parens

@@ -19,7 +19,7 @@ pub enum ParserToken {
     Operation(String),       // Pops 2 values from stack as arguments and pushes a result
     Push(Value),
     Pop(),
-    Call(String),        // Second argument for amount of arguments
+    Call(String, Vec<ParserToken>), // Second are arguments, executed before calling.
     Return(),
 }
 
@@ -32,6 +32,8 @@ impl Parser {
 
     #[must_use]
     fn parse_until(&mut self, tk: LexerToken) -> Vec<ParserToken> {
+        assert!(!self.is_expr);
+
         let mut tokens = vec![];
         'parse_loop : loop {
             let peek = self.peek();
@@ -58,26 +60,11 @@ impl Parser {
             else if let LexerToken::Identifier(ident) = token.clone() {
                 self.eat(); // Identifier
                 let next = self.eat();
-                if self.is_expr {
-                    tokens.push(ParserToken::GetVariable(ident.clone()));
-                    if next.is_none() {
-                        break;
-                    }
-                    if let LexerToken::Operator(op) = next.unwrap() {
-                        match op.as_str() {
-                            "(" => { tokens.append(&mut self.function_call(ident)); }
-                            _ => { 
-                                tokens.push(ParserToken::Operation(op));
-                            }
-                        }
-                    }
-                    continue;
-                }
 
                 if let LexerToken::Operator(op) = next.unwrap() {
                     match op.as_str() {
                         "=" => { tokens.append(&mut self.variable_assignment(ident)); }
-                        "(" => { tokens.append(&mut self.function_call(ident.clone())); }
+                        "(" => { tokens.append(&mut self.function_call(ident)); }
                         _ => { 
                             panic!("Invalid operator! {}", op); 
                         }
@@ -90,9 +77,44 @@ impl Parser {
             }
             else 
             {
-                if !self.is_expr {
-                    panic!("Invalid syntax {:?}", token);
+                panic!("Invalid syntax");
+            }
+        }
+        tokens
+    }
+
+    fn parse_expression(&mut self) -> Vec<ParserToken> {
+        assert!(self.is_expr);
+
+        let mut tokens = vec![];
+        'parse_loop : loop {
+            let peek = self.peek();
+            if peek.is_none() {
+                break 'parse_loop;
+            }
+            let token = peek.unwrap();
+            if token == &LexerToken::NewLine { self.eat(); continue; }
+            
+            if let LexerToken::Identifier(ident) = token.clone() {
+                self.eat(); // Identifier
+                let next = self.eat();
+                if next.is_none() {
+                    tokens.push(ParserToken::GetVariable(ident.clone()));
+                    break;
                 }
+                if let LexerToken::Operator(op) = next.unwrap() {
+                    match op.as_str() {
+                        "(" => { tokens.append(&mut self.function_call(ident)); }
+                        _ => { 
+                            tokens.push(ParserToken::GetVariable(ident.clone()));
+                            tokens.push(ParserToken::Operation(op));
+                        }
+                    }
+                }
+                
+            }
+            else 
+            {
                 match token {
                     LexerToken::Operator(op) => {
                         tokens.push(ParserToken::Operation(op.clone()));
@@ -215,7 +237,7 @@ impl Parser {
 
     #[must_use]
     fn function_call(&mut self, fn_name: String) -> Vec<ParserToken> {
-        let mut tokens = vec![];
+        let mut arg_tokens = vec![];
         'args : loop {
             let tk = self.peek().expect("Invalid function decleration");
 
@@ -231,7 +253,7 @@ impl Parser {
                         LexerToken::Operator(")".to_string()),
                     ]
                 );
-                tokens.append(&mut expr);
+                arg_tokens.append(&mut expr);
 
                 let next = self.eat().expect("syntax error");
                 if next == LexerToken::Symbol(',') {
@@ -250,7 +272,8 @@ impl Parser {
             self.eat_expect(LexerToken::Symbol(';'));
         }
         
-        tokens.push(ParserToken::Call(fn_name));
+        let mut tokens = vec![];
+        tokens.push(ParserToken::Call(fn_name, arg_tokens));
         return tokens;
     }
 
@@ -285,7 +308,9 @@ impl Parser {
      */
     fn eat_expr(&mut self, terminator: Vec<LexerToken>) -> Vec<ParserToken> {
         let expr = self.eat_until(terminator);
-        let mut parsed = Parser::parse(expr, true);
+        let mut parse = Parser::new(expr, true);
+        let mut parsed = parse.parse_expression();
+        println!("parsed {:?}", parsed);
         let evaluated = AstExpr::evaluate(&mut parsed);
         return evaluated;
     }

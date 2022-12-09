@@ -44,8 +44,8 @@ impl Interpreter {
             else if let ParserToken::Pop() = token {
                 self.pop();
             }
-            else if let ParserToken::Call(func_name) = token {
-                self.call_function(func_name)
+            else if let ParserToken::Call(func_name, arg_tokens) = token {
+                self.call_function(func_name, arg_tokens);
             }
             else if let ParserToken::GetVariable(var_name) = token {
                 self.get_variable(var_name);
@@ -75,7 +75,9 @@ impl Interpreter {
         }
     }
 
-    fn call_function(&mut self, fn_name: &String) {
+    fn call_function(&mut self, fn_name: &String, arg_tokens: &Vec<ParserToken>) {
+        self.execute_tokens(arg_tokens);
+        
         if fn_name == "print" {
             println!("{}", self.pop().to_string());
             return;
