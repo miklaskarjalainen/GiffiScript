@@ -34,10 +34,11 @@ impl Parser {
     fn parse_until(&mut self, tk: LexerToken) -> Vec<ParserToken> {
         let mut tokens = vec![];
         'parse_loop : loop {
-            let token = self.peek().expect("Unexpted end of file");
-            if token == &tk {
+            let peek = self.peek();
+            if peek.is_none() || peek.unwrap() == &tk {
                 break 'parse_loop;
             }
+            let token = peek.unwrap();
             
             if let LexerToken::Keyword(kw) = token {
                 match kw.as_str() {
@@ -60,14 +61,14 @@ impl Parser {
                     match op.as_str() {
                         "=" => { tokens.append(&mut self.variable_assignment(ident)); }
                         "(" => { tokens.append(&mut self.function_call(ident.clone())); }
-                        _ => { panic!("Invalid operator!"); }
+                        _ => { panic!("Invalid operator! {}", op); }
                     }
                 }
                 
             }
             else 
             {
-                let mut expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
+                let mut expr = self.eat_expr(vec![LexerToken::Symbol(';'), LexerToken::Eof()]);
                 return AstExpr::evaluate(&mut expr);
             }
         }
@@ -83,6 +84,7 @@ impl Parser {
         if expr.len() > 0 {
             tokens = AstExpr::evaluate(&mut expr);
         }
+        // Implicit "return;" -> "return null;"
         else {
             tokens = vec![ParserToken::Push(Value::Null)];
         }
@@ -207,7 +209,10 @@ impl Parser {
             }
         }
 
-        self.eat_expect(LexerToken::Symbol(';'));
+        let peek = self.peek();
+        if peek == Some(&LexerToken::Symbol(';')) {
+            self.eat();
+        }
 
         tokens.push(ParserToken::Call(fn_name));
         return tokens;
@@ -224,6 +229,9 @@ impl Parser {
         'get_tokens: loop {
             let peeked = self.peek();
             if peeked.is_none() {
+                if terminator.contains(&LexerToken::Eof()) {
+                    break 'get_tokens;
+                }
                 panic!("Expected '{:?}' got EOF instead!", terminator);
             }
             if terminator.contains(peeked.unwrap()) {
