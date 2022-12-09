@@ -63,6 +63,9 @@ impl Interpreter {
             println!("| PRINT: {:?} |", self.pop());
             return;
         }
+        if fn_name == "panic" {
+            self.error("PANIC".to_string());
+        }
         let tks = self.funcs.get(fn_name).expect("No function found!").clone();
         self.execute_tokens(&tks);
         self.end_scope();
@@ -162,10 +165,46 @@ impl Interpreter {
     }
 
     fn pop(&mut self) -> Value {
-        assert!(self.stack.len() >= 1, "not enough arguments to pop");
+        if self.stack.len() == 0 {
+            self.error(format!("not enough arguments to pop"));
+        }
         return self.stack.pop().unwrap();
     }
 
+    fn error(&mut self, error_msg: String) -> ! {
+        use colored::Colorize;
+
+        println!("{}", format!("-----------VALUE STACK [{}]:------------", self.stack.len()).red().bold());
+
+        let mut stack_copy = self.stack.clone();
+        stack_copy.reverse();
+
+        for idx in 0..stack_copy.len() {
+            let val = stack_copy.get(idx).unwrap();
+            println!("{}", 
+                format!("{:?}\n", val).red()
+            );
+
+        }
+
+        println!("{}", format!("----------VARIABLES:------------").red().bold());
+        for scope_idx in 0..self.variables.len() {
+            for (var_name, value) in &self.variables[scope_idx] {
+                // indentation
+                println!("Indentation {}", scope_idx);
+                for _ in 0..scope_idx {
+                    print!(" ");
+                }
+                
+                println!("{} = {:?}", var_name, value);
+            }
+        }
+
+        println!("{}", format!("-----------------------------").red().bold());
+        println!("{}", format!("Interpreter Error: '{}'", error_msg.bold()).red());
+
+        panic!("paniced");
+    }
 
 }
 
