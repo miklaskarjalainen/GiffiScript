@@ -125,7 +125,7 @@ impl Parser {
                     LexerToken::Value(val) => {
                         tokens.push(ParserToken::Push(val.clone()));
                     } 
-                    _ => { panic!("Invalid syntax"); }
+                    _ => { panic!("Invalid syntax {:?}", token); }
                 }
                 self.eat();
             }

@@ -84,7 +84,7 @@ mod test {
 
         let code = String::from("
         fn sum(arg1, arg2) {
-            let result = arg1 + arg2
+            let result = arg1 + arg2;
             return result;
         }
         let r = sum(5,8);
@@ -103,7 +103,7 @@ mod test {
         }
         let r = returns_a_value(25);
         ");
-        test_code(code, Value::Int(40));
+        test_code(code, Value::Int(45));
     }
 
     #[test]
