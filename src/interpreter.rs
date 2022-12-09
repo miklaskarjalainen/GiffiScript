@@ -144,7 +144,13 @@ impl Interpreter {
             self.push(val.unwrap().clone());
             return;
         }
-        panic!("No variable called {}", var_name);
+        self.error(format!("No variable called {}", var_name));
+    }
+
+    #[must_use]
+    pub fn get_variable_value(&mut self, var_name: &String) -> Value {
+        self.get_variable(var_name);
+        return self.pop();
     }
 
     fn get_scope_count(&self) -> usize {
@@ -181,11 +187,11 @@ impl Interpreter {
         self.push(ur.clone());
     }
 
-    fn push(&mut self, val: Value) {
+    pub fn push(&mut self, val: Value) {
         self.stack.push(val);
     }
 
-    fn pop(&mut self) -> Value {
+    pub fn pop(&mut self) -> Value {
         if self.stack.len() == 0 {
             self.error(format!("not enough arguments to pop"));
         }
@@ -227,8 +233,8 @@ impl Interpreter {
         }
 
         println!("{}", format!("-----------------------------").red().bold());
-        let op = unsafe { self.last_op.as_ref().unwrap() };
-        println!("{}", format!("Last operation: {:?}", op).bold().red());
+        let op = unsafe { self.last_op.as_ref() };
+        println!("{}", format!("Last operation: {:?}", op.unwrap_or(&ParserToken::Push(Value::Null))).bold().red());
         println!("{}", format!("Interpreter Error: '{}'", error_msg.bold()).red());
         println!("{}", format!("-----------------------------").red().bold());
 

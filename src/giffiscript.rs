@@ -27,7 +27,7 @@ impl GiffiScript {
 
         println!("{}", format!("<---Parsing Started!--->").cyan().bold());
             let now = Instant::now();
-            let ptokens = Parser::parse(ltokens);
+            let ptokens = Parser::parse(ltokens, false);
             let end = Instant::now();
             let parser_time = end - now;
         println!("Parser Result: {:#?}", ptokens);
@@ -41,5 +41,86 @@ impl GiffiScript {
         println!("Lexing Time: {:?}", lexer_time);
         println!("Parsing Time: {:?}", parser_time);
         println!("Interpriting Time: {:?}", interpreting_time);
+
+
     }
+}
+
+
+#[cfg(test)]
+mod test {
+    use crate::giffiscript::{GiffiScript};
+    use crate::value::{Value};
+
+    /**
+     * Variable checked is 'r'
+     */
+    fn test_code(code: String, expected: Value) {
+        let mut m = GiffiScript::new();
+        m.execute(code);
+        assert_eq!(m.interpreter.get_variable_value(&"r".to_string()), expected);
+    }
+
+    #[test]
+    fn test_fn_returns1() {
+        let code = String::from("
+        fn returns_a_value() {
+            return \"Hello, World\";
+        }
+        let r = returns_a_value();
+        ");
+        test_code(code, Value::Litreal(String::from("Hello, World")));
+    }
+
+    #[test]
+    fn test_fn_returns2() {
+        let code = String::from("
+        fn sum(arg1, arg2) {
+            return arg1 + arg2;
+        }
+        let r = sum(5,8);
+        ");
+        test_code(code, Value::Int(13));
+
+        let code = String::from("
+        fn sum(arg1, arg2) {
+            let result = arg1 + arg2
+            return result;
+        }
+        let r = sum(5,8);
+        ");
+        test_code(code, Value::Int(13));
+    }
+
+    #[test]
+    fn test_fn_returns3() {
+        let code = String::from("
+        fn first_func(arg) {
+            return arg + 5;
+        }
+        fn returns_a_value(arg2) {
+            return first_func(arg2) + first_func(10);
+        }
+        let r = returns_a_value(25);
+        ");
+        test_code(code, Value::Int(40));
+    }
+
+    #[test]
+    fn test_fn_returns4() {
+        let code = String::from("
+        let g = 0;
+        fn does_a_thing() {
+            return g + 1;
+        }
+        g = does_a_thing();
+        g = does_a_thing();
+        g = does_a_thing();
+        g = does_a_thing();
+        g = does_a_thing();
+        let r = does_a_thing();
+        ");
+        test_code(code, Value::Int(6));
+    }
+
 }

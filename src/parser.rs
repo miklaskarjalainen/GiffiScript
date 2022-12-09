@@ -7,6 +7,7 @@ use crate::expr::{AstExpr};
 
 pub struct Parser {
     input: VecDeque<LexerToken>,
+    is_expr: bool
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -23,8 +24,9 @@ pub enum ParserToken {
 }
 
 impl Parser {
-    pub fn parse(tokens: VecDeque<LexerToken>) -> Vec<ParserToken> {
-        let mut parser = Parser::new(tokens);
+    #[must_use]
+    pub fn parse(tokens: VecDeque<LexerToken>, is_expr: bool) -> Vec<ParserToken> {
+        let mut parser = Parser::new(tokens, is_expr);
         parser.parse_until(LexerToken::Eof)
     }
 
@@ -55,12 +57,30 @@ impl Parser {
             }
             else if let LexerToken::Identifier(ident) = token.clone() {
                 self.eat(); // Identifier
-                let next = self.eat().expect("Syntax error");
-                if let LexerToken::Operator(op) = next {
+                let next = self.eat();
+                if self.is_expr {
+                    tokens.push(ParserToken::GetVariable(ident.clone()));
+                    if next.is_none() {
+                        break;
+                    }
+                    if let LexerToken::Operator(op) = next.unwrap() {
+                        match op.as_str() {
+                            "(" => { tokens.append(&mut self.function_call(ident)); }
+                            _ => { 
+                                tokens.push(ParserToken::Operation(op));
+                            }
+                        }
+                    }
+                    continue;
+                }
+
+                if let LexerToken::Operator(op) = next.unwrap() {
                     match op.as_str() {
                         "=" => { tokens.append(&mut self.variable_assignment(ident)); }
                         "(" => { tokens.append(&mut self.function_call(ident.clone())); }
-                        _ => { panic!("Invalid operator! {}", op); }
+                        _ => { 
+                            panic!("Invalid operator! {}", op); 
+                        }
                     }
                 }
                 
@@ -70,8 +90,22 @@ impl Parser {
             }
             else 
             {
-                let mut expr = self.eat_expr(vec![LexerToken::Symbol(';'), LexerToken::Eof]);
-                return AstExpr::evaluate(&mut expr);
+                if !self.is_expr {
+                    panic!("Invalid syntax {:?}", token);
+                }
+                match token {
+                    LexerToken::Operator(op) => {
+                        tokens.push(ParserToken::Operation(op.clone()));
+                    },
+                    LexerToken::Identifier(id) => {
+                        tokens.push(ParserToken::GetVariable(id.clone()));
+                    },
+                    LexerToken::Value(val) => {
+                        tokens.push(ParserToken::Push(val.clone()));
+                    } 
+                    _ => { panic!("Invalid syntax"); }
+                }
+                self.eat();
             }
         }
         tokens
@@ -83,9 +117,9 @@ impl Parser {
         let mut expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
         self.eat_expect(LexerToken::Symbol(';'));
 
-        let mut tokens;
+        let mut tokens = vec![];
         if expr.len() > 0 {
-            tokens = AstExpr::evaluate(&mut expr);
+            tokens.append(&mut expr);
         }
         // Implicit "return;" -> "return null;"
         else {
@@ -97,11 +131,9 @@ impl Parser {
 
     #[must_use]
     fn variable_assignment(&mut self, var_name: String) -> Vec<ParserToken> {
-        println!("variable assignment!");
-        let mut expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
-        let mut tokens = AstExpr::evaluate(&mut expr);
-        tokens.push(ParserToken::StoreVariable(var_name));
+        let mut tokens = self.eat_expr(vec![LexerToken::Symbol(';')]);
         self.eat_expect(LexerToken::Symbol(';'));
+        tokens.push(ParserToken::StoreVariable(var_name));
         tokens
     }
 
@@ -120,14 +152,11 @@ impl Parser {
             
             // Get expression
             let mut expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
-            let mut evaluated = AstExpr::evaluate(&mut expr);
+            tokens.append(&mut expr);
 
-            // symbol ';'
             self.eat_expect(LexerToken::Symbol(';'));
-
-            // push ParserTokens
-            tokens.append(&mut evaluated);
             tokens.push(ParserToken::DeclareVariable(identifier.clone()));
+
             return tokens;
         }
         panic!("expected an identifier after 'let' keyword");
@@ -186,7 +215,6 @@ impl Parser {
 
     #[must_use]
     fn function_call(&mut self, fn_name: String) -> Vec<ParserToken> {
-        // get argument names
         let mut tokens = vec![];
         'args : loop {
             let tk = self.peek().expect("Invalid function decleration");
@@ -196,9 +224,14 @@ impl Parser {
                 break 'args;
             }
             else {
-                let mut argument = self.eat_expr(vec![LexerToken::Symbol(','), LexerToken::Operator(")".to_string())]);
-                let mut evaluated = AstExpr::evaluate(&mut argument);
-                tokens.append(&mut evaluated);
+                println!("{}", fn_name);
+                let mut expr = self.eat_expr(
+                    vec![
+                        LexerToken::Symbol(','),
+                        LexerToken::Operator(")".to_string()),
+                    ]
+                );
+                tokens.append(&mut expr);
 
                 let next = self.eat().expect("syntax error");
                 if next == LexerToken::Symbol(',') {
@@ -213,11 +246,10 @@ impl Parser {
             }
         }
 
-        let peek = self.peek();
-        if peek == Some(&LexerToken::Symbol(';')) {
-            self.eat();
+        if !self.is_expr {
+            self.eat_expect(LexerToken::Symbol(';'));
         }
-
+        
         tokens.push(ParserToken::Call(fn_name));
         return tokens;
     }
@@ -228,7 +260,7 @@ impl Parser {
      * "LexerToken::Symbol(',')" for "fn foo(2+2+2, 0)"
      * "LexerToken::Operator(')')" for "fn foo(2+2+2)" // this is going to be a fucking problem, lol.
      */
-    fn eat_expr(&mut self, terminator: Vec<LexerToken>) -> VecDeque<LexerToken> {
+    fn eat_until(&mut self, terminator: Vec<LexerToken>) -> VecDeque<LexerToken> {
         let mut out_tks = VecDeque::new();
         'get_tokens: loop {
             let peeked = self.peek();
@@ -246,6 +278,16 @@ impl Parser {
             out_tks.push_back(token);
         }
         return out_tks;
+    }
+
+    /**
+     * Also evaluated
+     */
+    fn eat_expr(&mut self, terminator: Vec<LexerToken>) -> Vec<ParserToken> {
+        let expr = self.eat_until(terminator);
+        let mut parsed = Parser::parse(expr, true);
+        let evaluated = AstExpr::evaluate(&mut parsed);
+        return evaluated;
     }
 
     fn peek(&self) -> Option<&LexerToken> {
@@ -280,9 +322,10 @@ impl Parser {
         self.input.pop_front()
     }
 
-    fn new(tks: VecDeque<LexerToken>) -> Parser { 
+    fn new(tks: VecDeque<LexerToken>, is_expr: bool) -> Parser { 
         Parser {
             input: tks,
+            is_expr: is_expr
         }
     }
 }

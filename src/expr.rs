@@ -4,13 +4,13 @@ use crate::parser::{ParserToken};
 
 #[derive(Debug)]
 pub struct AstExpr {
-    pub token: LexerToken,
+    pub token: ParserToken,
     pub rhs: Option<Box<AstExpr>>,
     pub lhs: Option<Box<AstExpr>>,
 }
 
 impl AstExpr {
-    pub fn new(token: LexerToken, lhs: Option<Box<AstExpr>>, rhs: Option<Box<AstExpr>>) -> AstExpr {
+    pub fn new(token: ParserToken, lhs: Option<Box<AstExpr>>, rhs: Option<Box<AstExpr>>) -> AstExpr {
         AstExpr {
             token: token,
             lhs: lhs,
@@ -22,7 +22,7 @@ impl AstExpr {
      * Returns an evaluated vector
      * (40 + 40) * 2 -> (40, 40, '+', 2, '*')
      */
-    pub fn evaluate(mut expr: &mut VecDeque<LexerToken>) -> Vec<ParserToken> {
+    pub fn evaluate(mut expr: &mut Vec<ParserToken>) -> Vec<ParserToken> {
         // Turns the expressions to a tree
         let ast = AstExpr::to_ast(&mut expr, 0);
         // Turns the tree into a stack like vector.
@@ -40,46 +40,39 @@ impl AstExpr {
             v.append(&mut lhs.to_tokens())
         }
 
-        let tk = self.token.clone();
-        if let LexerToken::Identifier(var_name) = tk {
-            v.push(ParserToken::GetVariable(var_name));
-        }
-        else if let LexerToken::Value(value) = tk {
-            v.push(ParserToken::Push(value));
-        }
-        else if let LexerToken::Operator(op) = tk {
-            v.push(ParserToken::Operation(op));
-        }
-        else {
-            panic!("should not happen");
-        }
+        v.push(self.token.clone());
         return v;
     }
 
     // https://en.wikipedia.org/wiki/Operator-precedence_parser
-    fn parse_primary(input: &mut VecDeque<LexerToken>) -> AstExpr {
-        let token = input.pop_back().expect("failed to pop");
-        if let LexerToken::Value(_) = &token {
+    fn parse_primary(input: &mut Vec<ParserToken>) -> AstExpr {
+        let token = input.pop().expect("failed to pop");
+        if let ParserToken::Push(_) = &token {
             return AstExpr::new(token, None, None);
         }
-        else if let LexerToken::Identifier(_) = &token {
+        else if let ParserToken::GetVariable(_) = &token {
             return AstExpr::new(token, None, None);
         }
-        else if &LexerToken::Operator("(".to_string()) == &token {
+        else if let ParserToken::Call(_) = &token {
+            return AstExpr::new(token, None, None);
+        }
+        // TODO: do parens
+        /*
+        else if &ParserToken::Operation("(".to_string()) == &token {
             let gg = AstExpr::parse_primary(input);
             return gg;
         }
-        // TODO: do parens
+        */
         panic!("lol");
     }
 
-    fn to_ast(input: &mut VecDeque<LexerToken>, prec: u8) -> AstExpr {
+    fn to_ast(input: &mut Vec<ParserToken>, prec: u8) -> AstExpr {
         if prec >= 2 {
             return AstExpr::parse_primary(input);
         }
 
         let lhs = AstExpr::to_ast(input, prec + 1);
-        let token_opt = input.pop_back();
+        let token_opt = input.pop();
 
         if let Some(token) = token_opt {
             if AstExpr::get_precedence(&token) == prec {
@@ -87,15 +80,15 @@ impl AstExpr {
                 return AstExpr::new(token, Some(Box::new(lhs)), Some(Box::new(rhs)));
             }
             else {
-                input.push_back(token);
+                input.push(token);
             }
         } 
         
         return lhs;
     }
 
-    fn get_precedence(tk: &LexerToken) -> u8 {
-        if let LexerToken::Operator(op) = tk {
+    fn get_precedence(tk: &ParserToken) -> u8 {
+        if let ParserToken::Operation(op) = tk {
             match op.as_str() {
                 "+" | "-" => {
                     return 0u8;
@@ -125,7 +118,7 @@ mod test {
     use crate::value::Value;
     use super::AstExpr;
 
-    fn test_evaluator(mut to_eval: VecDeque<LexerToken>) -> Option<Value> {
+    fn test_evaluator(mut to_eval: Vec<ParserToken>) -> Option<Value> {
         let evaluated = AstExpr::evaluate(&mut to_eval);
         
         let mut stack = vec![];
@@ -152,21 +145,21 @@ mod test {
     #[test]
     fn test_operator_precedence() {
         // 1+2*3 == 7
-        let mut first = VecDeque::new();
-        first.push_back(LexerToken::Value(Value::Int(1)));
-        first.push_back(LexerToken::Operator("+".to_string()));
-        first.push_back(LexerToken::Value(Value::Int(2)));
-        first.push_back(LexerToken::Operator("*".to_string()));
-        first.push_back(LexerToken::Value(Value::Int(3)));
+        let mut first = vec![];
+        first.push(ParserToken::Push(Value::Int(1)));
+        first.push(ParserToken::Operation("+".to_string()));
+        first.push(ParserToken::Push(Value::Int(2)));
+        first.push(ParserToken::Operation("*".to_string()));
+        first.push(ParserToken::Push(Value::Int(3)));
         assert_eq!(test_evaluator(first).expect("error"), Value::Int(7));
 
         // 8/4/2 == 1
-        let mut second = VecDeque::new();
-        second.push_back(LexerToken::Value(Value::Int(8)));
-        second.push_back(LexerToken::Operator("/".to_string()));
-        second.push_back(LexerToken::Value(Value::Int(4)));
-        second.push_back(LexerToken::Operator("/".to_string()));
-        second.push_back(LexerToken::Value(Value::Int(2)));
+        let mut second = vec![];
+        second.push(ParserToken::Push(Value::Int(8)));
+        second.push(ParserToken::Operation("/".to_string()));
+        second.push(ParserToken::Push(Value::Int(4)));
+        second.push(ParserToken::Operation("/".to_string()));
+        second.push(ParserToken::Push(Value::Int(2)));
         assert_eq!(test_evaluator(second).expect("error"), Value::Int(1));
     }
 
