@@ -57,8 +57,6 @@ impl Interpreter {
     }
 
     fn call_function(&mut self, fn_name: &String) {
-        self.start_scope();
-        
         if fn_name == "print" {
             println!("| PRINT: {:?} |", self.pop());
             return;
@@ -66,6 +64,8 @@ impl Interpreter {
         if fn_name == "panic" {
             self.error("PANIC".to_string());
         }
+
+        self.start_scope();
         let tks = self.funcs.get(fn_name).expect("No function found!").clone();
         self.execute_tokens(&tks);
         self.end_scope();
@@ -182,7 +182,7 @@ impl Interpreter {
         for idx in 0..stack_copy.len() {
             let val = stack_copy.get(idx).unwrap();
             println!("{}", 
-                format!("{:?}\n", val).red()
+                format!("{:?}", val).red()
             );
 
         }
@@ -203,7 +203,7 @@ impl Interpreter {
         println!("{}", format!("-----------------------------").red().bold());
         println!("{}", format!("Interpreter Error: '{}'", error_msg.bold()).red());
 
-        panic!("paniced");
+        exit(-1);
     }
 
 }
