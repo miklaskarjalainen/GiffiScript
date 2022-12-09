@@ -25,7 +25,6 @@ impl AstExpr {
     pub fn evaluate(mut expr: &mut VecDeque<LexerToken>) -> Vec<ParserToken> {
         // Turns the expressions to a tree
         let ast = AstExpr::to_ast(&mut expr, 0);
-        println!("{:?}", ast);
         // Turns the tree into a stack like vector.
         ast.to_tokens()
     }

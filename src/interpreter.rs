@@ -219,8 +219,6 @@ impl Interpreter {
 
             println!("{}:", scope_name);
             for (var_name, value) in &self.variables[scope_idx].variables {
-                // indentation
-                
                 for _ in 0..identation {
                     print!(" ");
                 }
@@ -230,7 +228,7 @@ impl Interpreter {
 
         println!("{}", format!("-----------------------------").red().bold());
         let op = unsafe { self.last_op.as_ref().unwrap() };
-        println!("{}", format!("Last operation: {:?}", op).red());
+        println!("{}", format!("Last operation: {:?}", op).bold().red());
         println!("{}", format!("Interpreter Error: '{}'", error_msg.bold()).red());
         println!("{}", format!("-----------------------------").red().bold());
 

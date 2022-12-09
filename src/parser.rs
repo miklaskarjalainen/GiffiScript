@@ -28,9 +28,7 @@ impl Parser {
         parser.parse_until(LexerToken::Eof)
     }
 
-    /**
-     * Doesn't not append to tokens, like parse does.
-     */
+    #[must_use]
     fn parse_until(&mut self, tk: LexerToken) -> Vec<ParserToken> {
         let mut tokens = vec![];
         'parse_loop : loop {
@@ -53,6 +51,7 @@ impl Parser {
                     },
                     _ => { panic!("Unimplumented keyword {}", kw); }
                 }
+
             }
             else if let LexerToken::Identifier(ident) = token.clone() {
                 self.eat(); // Identifier
@@ -66,6 +65,9 @@ impl Parser {
                 }
                 
             }
+            else if token == &LexerToken::NewLine {
+                self.eat();
+            }
             else 
             {
                 let mut expr = self.eat_expr(vec![LexerToken::Symbol(';'), LexerToken::Eof]);
@@ -75,6 +77,7 @@ impl Parser {
         tokens
     }
 
+    #[must_use]
     fn function_return(&mut self) -> Vec<ParserToken> {
         self.eat_expect(LexerToken::Keyword("return".to_string()));
         let mut expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
@@ -92,6 +95,7 @@ impl Parser {
         tokens
     }
 
+    #[must_use]
     fn variable_assignment(&mut self, var_name: String) -> Vec<ParserToken> {
         println!("variable assignment!");
         let mut expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
@@ -272,6 +276,7 @@ impl Parser {
     }
 
     fn eat(&mut self) -> Option<LexerToken> {
+        println!("ate {:?}", self.input.front());
         self.input.pop_front()
     }
 

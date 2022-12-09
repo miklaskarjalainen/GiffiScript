@@ -12,6 +12,7 @@ pub enum LexerToken {
     Symbol(char),
     Operator(String),
     Identifier(String),
+    NewLine,
     Eof
 }
 
@@ -40,6 +41,9 @@ impl Lexer {
             
             if c.is_whitespace() {
                 lexer.flush();
+                if c == '\n' {
+                    lexer.push_token(LexerToken::NewLine);
+                }
                 continue;
             }
             if SYMBOLS.contains(&c)
