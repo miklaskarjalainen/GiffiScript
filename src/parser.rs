@@ -136,12 +136,12 @@ impl Parser {
     #[must_use]
     fn function_return(&mut self) -> Vec<ParserToken> {
         self.eat_expect(LexerToken::Keyword("return".to_string()));
-        let mut expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
+        let expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
         self.eat_expect(LexerToken::Symbol(';'));
 
         let mut tokens = vec![];
         if expr.len() > 0 {
-            tokens.append(&mut expr);
+            tokens = expr;
         }
         // Implicit "return;" -> "return null;"
         else {

@@ -23,6 +23,10 @@ impl AstExpr {
      * (40 + 40) * 2 -> (40, 40, '+', 2, '*')
      */
     pub fn evaluate(mut expr: &mut Vec<ParserToken>) -> Vec<ParserToken> {
+        if expr.len() == 0 {
+            return vec![];
+        }
+
         // Turns the expressions to a tree
         let ast = AstExpr::to_ast(&mut expr, 0);
         // Turns the tree into a stack like vector.

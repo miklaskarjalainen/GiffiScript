@@ -62,6 +62,21 @@ mod test {
     }
 
     #[test]
+    fn test_fn_returns_null() {
+        let code = String::from("
+        fn first() {
+            return;
+        }
+        fn second() {
+            return first();
+        }
+        let r = second();
+        ");
+        test_code(code, Value::Null);
+    }
+
+
+    #[test]
     fn test_fn_returns1() {
         let code = String::from("
         fn returns_a_value() {
