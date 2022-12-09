@@ -9,6 +9,7 @@ pub enum ValueE {
 pub enum Value {
     Int(i64),
     Litreal(String),
+    Boolean(bool),
     Null,
 }
 
@@ -16,6 +17,12 @@ impl Value {
     pub fn parse(s: &String) -> Result<Value, ValueE> {
         if let Ok(i) = s.parse::<i64>() {
             return Ok(Value::Int(i));
+        }
+        if s == "true" {
+            return Ok(Value::Boolean(true));
+        }
+        if s == "false" {
+            return Ok(Value::Boolean(false));
         }
         Err(ValueE::ParsingError)
     }
@@ -44,6 +51,7 @@ impl Value {
         match self {
             Value::Int(i) => { return i.to_string(); },
             Value::Litreal(s) => { return s.clone(); },
+            Value::Boolean(b) => { return if *b { "true".to_string() } else { "false".to_string() } }
             Value::Null => { return "null".to_string(); },
         }
     }

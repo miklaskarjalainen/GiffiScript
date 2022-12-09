@@ -2,8 +2,8 @@ use crate::value::Value;
 use std::collections::{VecDeque};
 
 const SYMBOLS: [char; 6] = ['{', '}', '.', ',', ':', ';'];
-const OPERATORS: [&'static str; 7] = ["+", "-", "/", "*", "(", ")", "="]; // Not chars cuz need to add operators like "&&", "||"
-const KEYWORDS: [&'static str; 3] = ["let", "return", "fn"];
+const OPERATORS: [&'static str; 11] = ["+", "-", "/", "*", "(", ")", "=", "!", "==", "!=", "||"]; // Not chars cuz need to add operators like "&&", "||"
+const KEYWORDS: [&'static str; 5] = ["let", "return", "fn", "if", "else"];
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LexerToken {
@@ -27,7 +27,14 @@ impl Lexer {
     pub fn lex(code: String) -> VecDeque<LexerToken> {
         let mut lexer = Lexer::new();
 
-        for c in code.chars() {
+        let mut iter = code.chars().peekable();
+        loop {
+            let opt_c = iter.next();
+            if opt_c.is_none() {
+                break;
+            }
+            let c = opt_c.unwrap();
+            
             // Strings
             if c == '"' {
                 lexer.flush();
@@ -55,9 +62,25 @@ impl Lexer {
             if OPERATORS.contains(&String::from(c).as_str())
             {
                 lexer.flush();
+                
                 lexer.current_word.push(c);
-                lexer.flush();
-                continue;
+                let peek = iter.peek();
+                if peek.is_none() {
+                    lexer.flush();
+                    break;
+                }
+                else {
+                    let c = peek.unwrap();
+                    lexer.current_word.push(c.clone());
+                    if OPERATORS.contains(&lexer.current_word.as_str()) {
+                        iter.next();
+                    }
+                    else {
+                        lexer.current_word.pop();
+                    }
+                    lexer.flush();
+                    continue;
+                }
             }
 
             lexer.current_word.push(c);
@@ -103,6 +126,8 @@ impl Lexer {
         else {
             self.push_token(LexerToken::Identifier(word));
         }
+
+        
     }
 
     fn push_token(&mut self, tk: LexerToken) {
