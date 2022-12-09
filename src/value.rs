@@ -35,8 +35,16 @@ impl Value {
                 return self.div(other);
             }
             _ => {
-                panic!("Invaldi operation");
+                panic!("Invalid operation");
             }
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            Value::Int(i) => { return i.to_string(); },
+            Value::Litreal(s) => { return s.clone(); },
+            Value::Null => { return "null".to_string(); },
         }
     }
 }

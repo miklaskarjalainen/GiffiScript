@@ -77,7 +77,7 @@ impl Interpreter {
 
     fn call_function(&mut self, fn_name: &String) {
         if fn_name == "print" {
-            println!("| PRINT: {:?} |", self.pop());
+            println!("{}", self.pop().to_string());
             return;
         }
         if fn_name == "panic" {
@@ -200,10 +200,11 @@ impl Interpreter {
         let mut stack_copy = self.stack.clone();
         stack_copy.reverse();
 
-        for idx in 0..stack_copy.len() {
+        for idx in (0..stack_copy.len()).rev() {
             let val = stack_copy.get(idx).unwrap();
-            println!("{}", 
-                format!("{:?}", val).red()
+            println!("[{}] = {}",
+                idx, 
+                format!("{:?}", val).green()
             );
 
         }
