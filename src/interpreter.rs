@@ -4,11 +4,24 @@ use std::process::exit;
 use crate::parser::{ParserToken};
 use crate::value::{Value};
 
-type Variables = HashMap<String, Value>;
+struct Scope {
+    scope_name: String,
+    variables: HashMap<String, Value>
+}
+impl Scope {
+    pub fn new(scope_name: String) -> Scope {
+        Scope {
+            scope_name: scope_name,
+            variables: HashMap::new()
+        }
+    }
+}
+
 pub struct Interpreter {
     funcs: HashMap<String, Vec<ParserToken>>,
-    variables: VecDeque<Variables>,
-    stack: Vec<Value>
+    variables: VecDeque<Scope>,
+    stack: Vec<Value>,
+    last_op: *const ParserToken
 }
 
 impl Interpreter {
@@ -16,10 +29,10 @@ impl Interpreter {
         let mut int = Interpreter { 
             funcs: HashMap::new(),
             variables: VecDeque::new(),
-            stack: vec![]
+            stack: vec![],
+            last_op: 0 as *const ParserToken
         };
-        // Global Variable Scope
-        int.start_scope();
+        int.start_scope("global".to_string());
         return int;
     }
 
@@ -53,6 +66,12 @@ impl Interpreter {
             else if let ParserToken::StoreVariable(var_name) = &token {
                 self.store_variable(var_name);
             }
+            else {
+                #[allow(unreachable_code)]
+                self.error(panic!("Unimplumented operation: {:?}", token));
+            }
+
+            self.last_op = token;
         }
     }
 
@@ -65,7 +84,7 @@ impl Interpreter {
             self.error("PANIC".to_string());
         }
 
-        self.start_scope();
+        self.start_scope(fn_name.clone());
         let tks = self.funcs.get(fn_name).expect("No function found!").clone();
         self.execute_tokens(&tks);
         self.end_scope();
@@ -79,12 +98,12 @@ impl Interpreter {
         let val = self.pop();
 
         for idx in 0..self.variables.len() {
-            let variables = self.variables.get_mut(idx).unwrap();
-            let exists = variables.contains_key(var_name);
+            let scope = self.variables.get_mut(idx).unwrap();
+            let exists = scope.variables.contains_key(var_name);
             if !exists {
                 continue;
             }
-            *variables.get_mut(var_name).unwrap() = val;
+            *scope.variables.get_mut(var_name).unwrap() = val;
             return;
         }
         panic!("No variable called {}", var_name);
@@ -95,10 +114,10 @@ impl Interpreter {
 
         let val = self.pop();
         let scope = self.get_scope();
-        if scope.contains_key(var_name) {
+        if scope.variables.contains_key(var_name) {
             panic!("A variable named {} already exsts!", var_name);
         }
-        scope.insert(var_name.clone(), val.clone());
+        scope.variables.insert(var_name.clone(), val);
     }
 
     fn declare_function(&mut self, fn_name: &String, fn_body: &Vec<ParserToken>) {
@@ -117,8 +136,8 @@ impl Interpreter {
      */
     fn get_variable(&mut self, var_name: &String) {
         for idx in 0..self.variables.len() {
-            let variables = self.variables.get(idx).unwrap();
-            let val = variables.get(var_name);
+            let scope = self.variables.get(idx).unwrap();
+            let val = scope.variables.get(var_name);
             if val.is_none() {
                 continue;
             }
@@ -132,12 +151,14 @@ impl Interpreter {
         self.variables.len()
     }
 
-    fn get_scope(&mut self) -> &mut Variables {
+    fn get_scope(&mut self) -> &mut Scope {
         self.variables.front_mut().unwrap()
     }
 
-    fn start_scope(&mut self) {
-        self.variables.push_front(HashMap::new());
+    fn start_scope(&mut self, scope_name: String) {
+        self.variables.push_front(
+            Scope::new(scope_name)
+        );
     }
 
     fn end_scope(&mut self) {
@@ -174,7 +195,7 @@ impl Interpreter {
     fn error(&mut self, error_msg: String) -> ! {
         use colored::Colorize;
 
-        println!("{}", format!("-----------VALUE STACK [{}]:------------", self.stack.len()).red().bold());
+        println!("{}", format!("-------VALUE STACK [{}]:------", self.stack.len()).red().bold());
 
         let mut stack_copy = self.stack.clone();
         stack_copy.reverse();
@@ -187,21 +208,30 @@ impl Interpreter {
 
         }
 
-        println!("{}", format!("----------VARIABLES:------------").red().bold());
-        for scope_idx in 0..self.variables.len() {
-            for (var_name, value) in &self.variables[scope_idx] {
+        println!("{}", format!("-------VARIABLES:------------").red().bold());
+        for scope_idx in (0..self.variables.len()).rev() {
+            let identation = self.variables.len()-scope_idx;
+            let scope_name = &self.variables[scope_idx].scope_name;
+            for _ in 0..identation {
+                print!(" ");
+            }
+
+            println!("{}:", scope_name);
+            for (var_name, value) in &self.variables[scope_idx].variables {
                 // indentation
-                println!("Indentation {}", scope_idx);
-                for _ in 0..scope_idx {
+                
+                for _ in 0..identation {
                     print!(" ");
                 }
-                
-                println!("{} = {:?}", var_name, value);
+                println!(" {} = {:?}", var_name, value);
             }
         }
 
         println!("{}", format!("-----------------------------").red().bold());
+        let op = unsafe { self.last_op.as_ref().unwrap() };
+        println!("{}", format!("Last operation: {:?}", op).red());
         println!("{}", format!("Interpreter Error: '{}'", error_msg.bold()).red());
+        println!("{}", format!("-----------------------------").red().bold());
 
         exit(-1);
     }
