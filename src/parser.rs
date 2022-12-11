@@ -2,7 +2,7 @@ use core::panic;
 use std::collections::{VecDeque};
 
 use crate::interpreter::{Interpreter};
-use crate::lexer::{LexerToken};
+use crate::lexer::{LexerToken, Lexer};
 use crate::value::Value;
 use crate::expr::{AstExpr};
 
@@ -204,10 +204,18 @@ impl Parser {
                 if kw == "else" {
                     self.eat_expect(LexerToken::Keyword("else".to_string()));
 
-                    // body
-                    self.eat_expect(LexerToken::Symbol('{'));
-                    else_body = self.parse_until(LexerToken::Symbol('}'));
-                    self.eat_expect(LexerToken::Symbol('}'));
+                    let next = self.peek().expect("Expected '{' or 'if' efter keyword else");
+                    if &LexerToken::Keyword("if".to_string()) == next {
+                        // "else if" body
+                        else_body = self.if_statement();
+                    }
+                    else {
+                        // else body
+                        self.eat_expect(LexerToken::Symbol('{'));
+                        else_body = self.parse_until(LexerToken::Symbol('}'));
+                        self.eat_expect(LexerToken::Symbol('}'));
+                    }
+
                 }
             }
         }
