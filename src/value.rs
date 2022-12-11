@@ -73,6 +73,12 @@ impl Value {
             "%" => {
                 return self.modulo(other);
             }
+            "<" => {
+                return self.less_than(other);
+            }
+            ">" => {
+                return self.greater_than(other);
+            }
             "==" => {
                 return Ok(Value::Boolean(*self == other));
             },
@@ -100,6 +106,8 @@ pub trait ValueAdder<T> {
     fn sub(&self, rhs: T) -> Result<Value, ValueE>;
     fn mul(&self, rhs: T) -> Result<Value, ValueE>;
     fn div(&self, rhs: T) -> Result<Value, ValueE>;
+    fn less_than(&self, rhs: T) -> Result<Value, ValueE>;
+    fn greater_than(&self, rhs: T) -> Result<Value, ValueE>;
     fn modulo(&self, rhs: T) -> Result<Value, ValueE>;
 }
 
@@ -132,6 +140,20 @@ impl ValueAdder<Value> for Value {
     fn div(&self, rhs: Value) -> Result<Value, ValueE> {
         if let Value::Int(value) = rhs {
             return self.div(value);
+        }
+        return Err(ValueE::TypeMismatch);
+    }
+
+    fn less_than(&self, rhs: Value) -> Result<Value, ValueE> {
+        if let Value::Int(value) = rhs {
+            return self.less_than(value);
+        }
+        return Err(ValueE::TypeMismatch);
+    }
+
+    fn greater_than(&self, rhs: Value) -> Result<Value, ValueE> {
+        if let Value::Int(value) = rhs {
+            return self.greater_than(value);
         }
         return Err(ValueE::TypeMismatch);
     }
@@ -177,6 +199,23 @@ impl ValueAdder<i64> for Value {
         return Err(ValueE::TypeMismatch);
     }
 
+    fn less_than(&self, rhs: i64) -> Result<Value, ValueE> {
+        if let Value::Int(lhs) = self {
+            if rhs == 0 {
+                return Err(ValueE::DivisionByZero);
+            }
+            return Ok(Value::Boolean(lhs.clone() < rhs));
+        }
+        return Err(ValueE::TypeMismatch);
+    }
+
+    fn greater_than(&self, rhs: i64) -> Result<Value, ValueE> {
+        if let Value::Int(lhs) = self {
+            return Ok(Value::Boolean(lhs.clone() > rhs));
+        }
+        return Err(ValueE::TypeMismatch);
+    }
+
     fn modulo(&self, rhs: i64) -> Result<Value, ValueE> {
         if let Value::Int(lhs) = self {
             if rhs == 0 {
@@ -206,6 +245,14 @@ impl ValueAdder<String> for Value {
     }
 
     fn div(&self, _rhs: String) -> Result<Value, ValueE> {
+        return Err(ValueE::UnkownOperation);
+    }
+
+    fn less_than(&self, rhs: String) -> Result<Value, ValueE> {
+        return Err(ValueE::UnkownOperation);
+    }
+
+    fn greater_than(&self, rhs: String) -> Result<Value, ValueE> {
         return Err(ValueE::UnkownOperation);
     }
 
