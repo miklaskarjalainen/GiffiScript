@@ -67,15 +67,23 @@ impl Lexer {
                     break;
                 }
                 else {
-                    let c = peek.unwrap();
-                    lexer.current_word.push(c.clone());
-                    if OPERATORS.contains(&lexer.current_word.as_str()) {
+                    // Negative numbers
+                    let peeked_c = peek.unwrap();
+                    if c == '-' && peeked_c.is_numeric() {
+                        continue;
+                    }
+
+                    // 2 char operators like "==", "&&"
+                    let possible_op = format!("{}{}", c, peeked_c);
+                    if OPERATORS.contains(&possible_op.as_str()) {
                         iter.next();
+                        lexer.current_word = possible_op;
+                        lexer.flush();
                     }
                     else {
-                        lexer.current_word.pop();
+                        lexer.flush();
                     }
-                    lexer.flush();
+
                     continue;
                 }
             }
