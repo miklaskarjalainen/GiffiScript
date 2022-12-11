@@ -2,6 +2,8 @@ use std::collections::VecDeque;
 use crate::lexer::{LexerToken};
 use crate::parser::{ParserToken};
 
+const MAX_PRECEDENCE:u8 = 3;
+
 #[derive(Debug)]
 pub struct AstExpr {
     pub token: ParserToken,
@@ -71,7 +73,7 @@ impl AstExpr {
     }
 
     fn to_ast(input: &mut Vec<ParserToken>, prec: u8) -> AstExpr {
-        if prec >= 2 {
+        if prec >= MAX_PRECEDENCE {
             return AstExpr::parse_primary(input);
         }
 
@@ -94,18 +96,21 @@ impl AstExpr {
     fn get_precedence(tk: &ParserToken) -> u8 {
         if let ParserToken::Operation(op) = tk {
             match op.as_str() {
-                "+" | "-" => {
+                "==" | "!=" => {
                     return 0u8;
                 }
-                "*" | "/" | "%" => {
+                "+" | "-" => {
                     return 1u8;
                 }
-                "(" | ")" => {
+                "*" | "/" | "%" => {
                     return 2u8;
+                }
+                "(" | ")" => {
+                    return MAX_PRECEDENCE;
                 }
                 _ => {
                     // assert!(false, "unkown operator");
-                    return 2u8;
+                    return MAX_PRECEDENCE;
                 }
             }
         }

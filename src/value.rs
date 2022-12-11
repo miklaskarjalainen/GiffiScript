@@ -14,6 +14,10 @@ pub enum Value {
 }
 
 impl Value {
+    /**
+     * Parses Ints, Bools, Null, etc.
+     * Doesn't parse string literals!
+     */
     pub fn parse(s: &String) -> Result<Value, ValueE> {
         if let Ok(i) = s.parse::<i64>() {
             return Ok(Value::Int(i));
@@ -63,6 +67,12 @@ impl Value {
             }
             "/" => {
                 return self.div(other);
+            }
+            "==" => {
+                return Ok(Value::Boolean(*self == other));
+            },
+            "!=" => {
+                return Ok(Value::Boolean(*self != other));
             }
             _ => {
                 panic!("Invalid operation");
