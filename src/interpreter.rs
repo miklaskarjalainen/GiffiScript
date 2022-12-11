@@ -60,11 +60,13 @@ impl Interpreter {
                 self.op(op);
             }
             else if let ParserToken::Return() = &token {
-                self.return_function();
                 break;
             }
             else if let ParserToken::StoreVariable(var_name) = &token {
                 self.store_variable(var_name);
+            }
+            else if let ParserToken::If(true_body, false_body) = &token {
+                self.if_statement(true_body, false_body);
             }
             else {
                 #[allow(unreachable_code)]
@@ -72,6 +74,20 @@ impl Interpreter {
             }
 
             self.last_op = token;
+        }
+    }
+
+    fn if_statement(&mut self, true_body: &Vec<ParserToken>, false_body: &Vec<ParserToken>) {
+        let value = self.pop();
+        if value.is_true() {
+            self.start_scope("If block".to_string());
+            self.execute_tokens(true_body);
+            self.end_scope();
+        }
+        else {
+            self.start_scope("Else block".to_string());
+            self.execute_tokens(false_body);
+            self.end_scope();
         }
     }
 
@@ -90,10 +106,6 @@ impl Interpreter {
         let tks = self.funcs.get(fn_name).expect("No function found!").clone();
         self.execute_tokens(&tks);
         self.end_scope();
-    }
-
-    fn return_function(&mut self) {
-        // TODO: return a value to the stack.
     }
 
     fn store_variable(&mut self, var_name: &String) {

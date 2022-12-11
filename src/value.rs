@@ -30,6 +30,26 @@ impl Value {
         Err(ValueE::ParsingError)
     }
 
+    pub fn is_true(&self) -> bool {
+        match self {
+            Value::Int(value) => {
+                return value != &0;
+            }
+            Value::Litreal(literal) => {
+                return !literal.is_empty();
+            }
+            Value::Boolean(value) => {
+                return value.clone();
+            }
+            Value::Null => {
+                return false;
+            }
+            _ => {
+                panic!("Not implemented yet!");
+            }
+        }
+    }
+
     pub fn do_operation(&self, op: &String, other: Value) -> Result<Value, ValueE> {
         match op.as_str() {
             "+" => {

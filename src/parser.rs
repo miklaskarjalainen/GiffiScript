@@ -19,6 +19,7 @@ pub enum ParserToken {
     Operation(String),       // Pops 2 values from stack as arguments and pushes a result
     Push(Value),
     Pop(),
+    If(Vec<ParserToken>, Vec<ParserToken>), // Pops value, if true executes first, else the second
     Call(String, Vec<ParserToken>), // Second are arguments, executed before calling.
     Return(),
 }
@@ -53,6 +54,9 @@ impl Parser {
                     "return" => { 
                         tokens.append(&mut self.function_return());
                     },
+                    "if" => {
+                        tokens.append(&mut self.if_statement())
+                    }
                     _ => { panic!("Unimplumented keyword {}", kw); }
                 }
 
@@ -77,7 +81,7 @@ impl Parser {
             }
             else 
             {
-                panic!("Invalid syntax");
+                panic!("Invalid syntax found token {:?}", token);
             }
         }
         tokens
@@ -130,6 +134,32 @@ impl Parser {
                 self.eat();
             }
         }
+        tokens
+    }
+
+    #[must_use]
+    fn if_statement(&mut self) -> Vec<ParserToken> {
+        self.eat_expect(LexerToken::Keyword("if".to_string()));
+
+        // If comparision 
+        let mut expr = self.eat_expr(vec![LexerToken::Symbol('{')]);
+        if expr.len() == 0 {
+            panic!("Expecte an comparision after 'if' statement!");
+        }
+        
+        // If(true) body
+        self.eat_expect(LexerToken::Symbol('{'));
+        let if_body = self.parse_until(LexerToken::Symbol('}'));
+        self.eat_expect(LexerToken::Symbol('}'));
+
+        // Tokens
+        let mut tokens = vec![];
+        tokens.append(&mut expr);
+        tokens.push(
+            ParserToken::If(if_body, vec![])
+        );
+        
+        println!("Correctly parsed if statement: {:#?}", tokens);
         tokens
     }
 
@@ -286,7 +316,7 @@ impl Parser {
     fn eat_until(&mut self, terminator: Vec<LexerToken>) -> VecDeque<LexerToken> {
         let mut out_tks = VecDeque::new();
 
-        let mut scopes: Vec<char> = vec![]; // '(' and '{' gets pushed in '}' and ')' pushes them out, needs to match.
+        let mut scopes: Vec<char> = vec![]; // '(' gets pushed in, and ')' pushes them out.
         'get_tokens: loop {
             let peeked = self.peek();
             if peeked.is_none() {
@@ -314,15 +344,6 @@ impl Parser {
                             panic!("Expected '(' for ')', but got {} instead!", popped);
                         }
                     }
-                    "{" => {
-                        scopes.push('{');
-                    },
-                    "}" => {
-                        let popped = scopes.pop().expect("No matching '{' for '}'");
-                        if popped != '{' {
-                            panic!("Expected '{{' for '}}', but got {} instead!", popped);
-                        }
-                    },
                     _ => {}
                 }
             }
