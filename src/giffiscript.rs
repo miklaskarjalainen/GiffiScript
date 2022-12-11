@@ -223,4 +223,24 @@ mod test {
         ");
         test_code(code, Value::Null);
     }
+
+    #[test]
+    fn test_if_equality() {
+        let code = String::from("
+        let r = null;
+        if 55 == 55 { 
+            r = true;
+        }
+        ");
+        test_code(code, Value::Boolean(true));
+
+        let code = String::from("
+        let r = null;
+        let x = 55 == 55;
+        if x { 
+            r = true;
+        }
+        ");
+        test_code(code, Value::Boolean(true));
+    }
 }
