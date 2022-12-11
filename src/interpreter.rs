@@ -1,7 +1,8 @@
 use std::collections::{HashMap, VecDeque};
 use std::process::exit;
 
-use crate::parser::{ParserToken};
+use crate::lexer::{Lexer};
+use crate::parser::{Parser, ParserToken};
 use crate::value::{Value, self};
 
 mod math;
@@ -23,6 +24,7 @@ impl Scope {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Interpreter {
+    imported_files: Vec<String>,
     funcs: HashMap<String, Vec<ParserToken>>,
     variables: VecDeque<Scope>,
     stack: Vec<Value>,
@@ -32,6 +34,7 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new() -> Interpreter {
         let mut int = Interpreter { 
+            imported_files: vec![],
             funcs: HashMap::new(),
             variables: VecDeque::new(),
             stack: vec![],
@@ -91,6 +94,12 @@ impl Interpreter {
     }
 
     fn import(&mut self, library: &String) {
+        if self.imported_files.contains(&library) {
+            return;
+        }
+        self.imported_files.push(library.clone());
+
+        // std libraries
         if library == "math" {
             math::import_libs(self);
             return;
@@ -99,6 +108,16 @@ impl Interpreter {
             io::import_libs(self);
             return;
         }
+
+        let code = std::fs::read_to_string(library);
+        if code.is_err() {
+            self.error(format!("Could not import file {}!", library));
+        }
+
+        // Literally execute everything that's imported
+        let ltokens = Lexer::lex(code.unwrap());
+        let ptokens = Parser::parse(ltokens, false);
+        self.execute_tokens(&ptokens);
     }
 
     fn while_loop(&mut self, check: &Vec<ParserToken>, body: &Vec<ParserToken>) {
