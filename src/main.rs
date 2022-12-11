@@ -28,7 +28,6 @@ fn main() {
     
     // run file
     let mut args: Vec<String> = env::args().collect();
-    args.push("./program.gs".to_string());
     if args.len() > 1 {
         let code = std::fs::read_to_string(&args[1]);
         if code.is_err() {
