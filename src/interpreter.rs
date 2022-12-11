@@ -4,6 +4,10 @@ use std::process::exit;
 use crate::parser::{ParserToken};
 use crate::value::{Value};
 
+mod math;
+mod io;
+
+#[derive(Debug, Clone, PartialEq)]
 struct Scope {
     scope_name: String,
     variables: HashMap<String, Value>
@@ -17,6 +21,7 @@ impl Scope {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct Interpreter {
     funcs: HashMap<String, Vec<ParserToken>>,
     variables: VecDeque<Scope>,
@@ -47,6 +52,9 @@ impl Interpreter {
             else if let ParserToken::Call(func_name, arg_tokens) = token {
                 self.call_function(func_name, arg_tokens);
             }
+            else if let ParserToken::CallNative(native_function) = token {
+                native_function(self);
+            }
             else if let ParserToken::GetVariable(var_name) = token {
                 self.get_variable(var_name);
             }
@@ -71,11 +79,25 @@ impl Interpreter {
             else if let ParserToken::While(check, body) = &token {
                 self.while_loop(check, body);
             }
+            else if let ParserToken::Import(library) = &token {
+                self.import(library);
+            }
             else {
                 self.error(panic!("Unimplumented operation: {:?}", token));
             }
 
             self.last_op = token;
+        }
+    }
+
+    fn import(&mut self, library: &String) {
+        if library == "math" {
+            math::import_libs(self);
+            return;
+        }
+        if library == "io" {
+            io::import_libs(self);
+            return;
         }
     }
 
@@ -111,11 +133,7 @@ impl Interpreter {
 
     fn call_function(&mut self, fn_name: &String, arg_tokens: &Vec<ParserToken>) {
         self.execute_tokens(arg_tokens);
-        
-        if fn_name == "print" {
-            println!("{}", self.pop().to_string());
-            return;
-        }
+
         if fn_name == "panic" {
             self.error("PANIC".to_string());
         }

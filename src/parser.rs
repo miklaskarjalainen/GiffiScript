@@ -1,6 +1,7 @@
 use core::panic;
 use std::collections::{VecDeque};
 
+use crate::interpreter::{Interpreter};
 use crate::lexer::{LexerToken};
 use crate::value::Value;
 use crate::expr::{AstExpr};
@@ -22,7 +23,9 @@ pub enum ParserToken {
     If(Vec<ParserToken>, Vec<ParserToken>), // Pops value, if true executes first, else the second
     While(Vec<ParserToken>, Vec<ParserToken>), // First expression used for comparision, if true executes second (which is the body)
     Call(String, Vec<ParserToken>), // Second are arguments, executed before calling.
+    CallNative(fn(*mut Interpreter)), // Added by libraries when imported
     Return(),
+    Import(String),
 }
 
 impl Parser {
@@ -78,6 +81,9 @@ impl Parser {
                     }
                     "while" => {
                         tokens.append(&mut self.while_statement())
+                    }
+                    "import" => {
+                        tokens.append(&mut self.extern_keyword())
                     }
                     _ => { panic!("Unimplumented keyword {}", kw); }
                 }
@@ -157,6 +163,21 @@ impl Parser {
             }
         }
         tokens
+    }
+
+    #[must_use]
+    fn extern_keyword(&mut self) -> Vec<ParserToken> {
+        // Syntax "<keyword->import> <literal><semicolon>"
+        self.eat_expect(LexerToken::Keyword("import".to_string()));
+        
+        let library = self.eat();
+        if let Some(LexerToken::Value(library_val)) = &library {
+            if let Value::Literal(library_name) = library_val {
+                self.eat_expect(LexerToken::Symbol(';'));
+                return vec![ParserToken::Import(library_name.clone())];
+            }
+        }
+        panic!("Expected Library as String after \"import\" got {:?} instead!", library);
     }
 
     #[must_use]
