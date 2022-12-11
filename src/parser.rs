@@ -36,12 +36,30 @@ impl Parser {
         assert!(!self.is_expr);
 
         let mut tokens = vec![];
+        let mut scopes: Vec<char> = vec![];
         'parse_loop : loop {
             let peek = self.peek();
-            if peek.is_none() || peek.unwrap() == &tk {
+            if peek.is_none() {
                 break 'parse_loop;
             }
+
+            // Terminator
             let token = peek.unwrap();
+            if scopes.len() == 0 && token == &tk {
+                break 'parse_loop;
+            }
+            // Scopes
+            if let LexerToken::Symbol(symbol) = token {
+                if symbol == &'{' {
+                    scopes.push('{');
+                }
+                else if symbol == &'}' {
+                    let symbol = scopes.pop().expect(format!("not matching '}}' for '{{' got {} instead", symbol).as_str());
+                    if symbol != '{' {
+                        panic!("not matching '}}' for '{{' got {} instead", symbol);
+                    }
+                }
+            }
             
             if let LexerToken::Keyword(kw) = token {
                 match kw.as_str() {
@@ -152,11 +170,27 @@ impl Parser {
         let if_body = self.parse_until(LexerToken::Symbol('}'));
         self.eat_expect(LexerToken::Symbol('}'));
 
+        // else body
+        let mut else_body = vec![];
+        let peek = self.peek();
+        if let Some(tk) = peek {
+            if let LexerToken::Keyword(kw) = tk {
+                if kw == "else" {
+                    self.eat_expect(LexerToken::Keyword("else".to_string()));
+
+                    // body
+                    self.eat_expect(LexerToken::Symbol('{'));
+                    else_body = self.parse_until(LexerToken::Symbol('}'));
+                    self.eat_expect(LexerToken::Symbol('}'));
+                }
+            }
+        }
+
         // Tokens
         let mut tokens = vec![];
         tokens.append(&mut expr);
         tokens.push(
-            ParserToken::If(if_body, vec![])
+            ParserToken::If(if_body, else_body)
         );
         
         println!("Correctly parsed if statement: {:#?}", tokens);
@@ -169,7 +203,7 @@ impl Parser {
         let expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
         self.eat_expect(LexerToken::Symbol(';'));
 
-        let mut tokens = vec![];
+        let mut tokens;
         if expr.len() > 0 {
             tokens = expr;
         }

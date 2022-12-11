@@ -48,9 +48,6 @@ impl Lexer {
             
             if c.is_whitespace() {
                 lexer.flush();
-                if c == '\n' {
-                    lexer.push_token(LexerToken::NewLine);
-                }
                 continue;
             }
             if SYMBOLS.contains(&c)
