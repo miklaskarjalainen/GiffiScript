@@ -70,6 +70,9 @@ impl Value {
             "/" => {
                 return self.div(other);
             }
+            "%" => {
+                return self.modulo(other);
+            }
             "==" => {
                 return Ok(Value::Boolean(*self == other));
             },
@@ -97,6 +100,7 @@ pub trait ValueAdder<T> {
     fn sub(&self, rhs: T) -> Result<Value, ValueE>;
     fn mul(&self, rhs: T) -> Result<Value, ValueE>;
     fn div(&self, rhs: T) -> Result<Value, ValueE>;
+    fn modulo(&self, rhs: T) -> Result<Value, ValueE>;
 }
 
 // Value + Value
@@ -128,6 +132,13 @@ impl ValueAdder<Value> for Value {
     fn div(&self, rhs: Value) -> Result<Value, ValueE> {
         if let Value::Int(value) = rhs {
             return self.div(value);
+        }
+        return Err(ValueE::TypeMismatch);
+    }
+
+    fn modulo(&self, rhs: Value) -> Result<Value, ValueE> {
+        if let Value::Int(value) = rhs {
+            return self.modulo(value);
         }
         return Err(ValueE::TypeMismatch);
     }
@@ -165,6 +176,16 @@ impl ValueAdder<i64> for Value {
         }
         return Err(ValueE::TypeMismatch);
     }
+
+    fn modulo(&self, rhs: i64) -> Result<Value, ValueE> {
+        if let Value::Int(lhs) = self {
+            if rhs == 0 {
+                return Err(ValueE::DivisionByZero);
+            }
+            return Ok(Value::Int(lhs.clone() % rhs));
+        }
+        return Err(ValueE::TypeMismatch);
+    }
 }
 
 // Value + String
@@ -185,6 +206,10 @@ impl ValueAdder<String> for Value {
     }
 
     fn div(&self, _rhs: String) -> Result<Value, ValueE> {
+        return Err(ValueE::UnkownOperation);
+    }
+
+    fn modulo(&self, _rhs: String) -> Result<Value, ValueE> {
         return Err(ValueE::UnkownOperation);
     }
 }

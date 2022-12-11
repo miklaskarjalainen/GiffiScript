@@ -2,7 +2,7 @@ use crate::value::Value;
 use std::collections::{VecDeque};
 
 const SYMBOLS: [char; 6] = ['{', '}', '.', ',', ':', ';'];
-const OPERATORS: [&'static str; 11] = ["+", "-", "/", "*", "(", ")", "=", "!", "==", "!=", "||"]; // Not chars cuz need to add operators like "&&", "||"
+const OPERATORS: [&'static str; 12] = ["+", "-", "/", "*", "%", "(", ")", "=", "!", "==", "!=", "||"]; // Not chars cuz need to add operators like "&&", "||"
 const KEYWORDS: [&'static str; 6] = ["let", "return", "fn", "if", "else", "while"];
 
 #[derive(Debug, Clone, PartialEq)]
