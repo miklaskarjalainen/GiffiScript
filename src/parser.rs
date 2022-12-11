@@ -20,6 +20,7 @@ pub enum ParserToken {
     Push(Value),
     Pop(),
     If(Vec<ParserToken>, Vec<ParserToken>), // Pops value, if true executes first, else the second
+    While(Vec<ParserToken>, Vec<ParserToken>), // First expression used for comparision, if true executes second (which is the body)
     Call(String, Vec<ParserToken>), // Second are arguments, executed before calling.
     Return(),
 }
@@ -74,6 +75,9 @@ impl Parser {
                     },
                     "if" => {
                         tokens.append(&mut self.if_statement())
+                    }
+                    "while" => {
+                        tokens.append(&mut self.while_statement())
                     }
                     _ => { panic!("Unimplumented keyword {}", kw); }
                 }
@@ -170,7 +174,7 @@ impl Parser {
         let if_body = self.parse_until(LexerToken::Symbol('}'));
         self.eat_expect(LexerToken::Symbol('}'));
 
-        // else body
+        // else body, if followed by an else statement
         let mut else_body = vec![];
         let peek = self.peek();
         if let Some(tk) = peek {
@@ -192,8 +196,29 @@ impl Parser {
         tokens.push(
             ParserToken::If(if_body, else_body)
         );
+        tokens
+    }
+
+    #[must_use]
+    fn while_statement(&mut self) -> Vec<ParserToken> {
+        self.eat_expect(LexerToken::Keyword("while".to_string()));
+
+        // While comparision 
+        let expr = self.eat_expr(vec![LexerToken::Symbol('{')]);
+        if expr.len() == 0 {
+            panic!("Expecte an expression after 'while' statement!");
+        }
         
-        println!("Correctly parsed if statement: {:#?}", tokens);
+        // If(true) body
+        self.eat_expect(LexerToken::Symbol('{'));
+        let if_body = self.parse_until(LexerToken::Symbol('}'));
+        self.eat_expect(LexerToken::Symbol('}'));
+
+        // Tokens
+        let mut tokens = vec![];
+        tokens.push(
+            ParserToken::While(expr, if_body)
+        );
         tokens
     }
 

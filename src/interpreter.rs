@@ -68,12 +68,31 @@ impl Interpreter {
             else if let ParserToken::If(true_body, false_body) = &token {
                 self.if_statement(true_body, false_body);
             }
+            else if let ParserToken::While(check, body) = &token {
+                self.while_loop(check, body);
+            }
             else {
                 #[allow(unreachable_code)]
                 self.error(panic!("Unimplumented operation: {:?}", token));
             }
 
             self.last_op = token;
+        }
+    }
+
+    fn while_loop(&mut self, check: &Vec<ParserToken>, body: &Vec<ParserToken>) {
+        'while_loop : loop{
+            // Evalute
+            self.execute_tokens(check);
+            let continue_looping = self.pop().is_true();
+            if !continue_looping {
+                break 'while_loop;
+            }
+
+            // Execute the body
+            self.start_scope("While loop".to_string());
+            self.execute_tokens(body);
+            self.end_scope();
         }
     }
 
