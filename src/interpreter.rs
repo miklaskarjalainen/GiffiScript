@@ -73,8 +73,20 @@ impl Interpreter {
             else if let ParserToken::Return() = &token {
                 break;
             }
+            else if let ParserToken::MakeArray(arg_count) = &token {
+                self.make_array(*arg_count);
+            }
+            else if let ParserToken::GetArrayElement(expression) = &token {
+                self.get_array_element(expression);
+            }
+            else if let ParserToken::GetVariableArrayElement(variable, expression) = &token {
+                self.get_variable_array_element(variable, expression);
+            }
             else if let ParserToken::StoreVariable(var_name) = &token {
                 self.store_variable(var_name);
+            }
+            else if let ParserToken::StoreVariableArrayElement(var_name) = &token {
+                self.store_variable_array_element(var_name);
             }
             else if let ParserToken::If(true_body, false_body) = &token {
                 self.if_statement(true_body, false_body);
@@ -118,6 +130,44 @@ impl Interpreter {
         let ltokens = Lexer::lex(code.unwrap());
         let ptokens = Parser::parse(ltokens, false);
         self.execute_tokens(&ptokens);
+    }
+
+    fn index_array(&mut self, array_value: &Value, index: &Value) {
+        if let Value::Int(idx) = index {
+            if let Value::Array(array) = array_value {
+                let i = idx.clone() as usize;
+                if i < array.len() {
+                    self.push(array.get(i).unwrap().clone());
+                    return;
+                }
+                self.error(format!("Array too small ({}) to index at {}", array.len(), i));
+            }
+            self.error(format!("Expecting an array when indexing into it, got {:?} instead!", array_value));
+        }
+        self.error(format!("Expecting an INT when indexing into an array, got {:?} instead!", index));
+    }
+
+    fn get_variable_array_element(&mut self, variable: &String, expr: &Vec<ParserToken>) {
+        self.execute_tokens(expr);
+        let idx = self.pop();
+        let array = self.get_variable_value(variable);
+        self.index_array(&array, &idx);
+    }
+
+    fn get_array_element(&mut self, expr: &Vec<ParserToken>) {
+        self.execute_tokens(expr);
+        let idx = self.pop();
+        let array = self.pop();
+        self.index_array(&array, &idx);
+    }
+
+    fn make_array(&mut self, arg_count: u32) {
+        let mut array = vec![];
+        for _ in 0..arg_count {
+            array.push(self.pop());
+        }
+        array.reverse();
+        self.push(Value::Array(array));
     }
 
     fn while_loop(&mut self, check: &Vec<ParserToken>, body: &Vec<ParserToken>) {
@@ -170,6 +220,29 @@ impl Interpreter {
         }
         self.execute_tokens(&tks.unwrap().clone());
         self.end_scope();
+    }
+
+    fn store_variable_array_element(&mut self, var_name: &String) {
+        let mut value = self.get_variable_value(var_name);
+        let assign = self.pop();
+        let index = self.pop();
+
+        
+        if let Value::Array(array) = &mut value {
+            if let Value::Int(idx) = &index {
+                let i = *idx as usize;
+                if i < array.len() {
+                    // Assign
+                    array[i] = assign;
+                    self.push(Value::Array(array.clone()));
+                    self.store_variable(var_name);
+                    return;
+                }
+                self.error(format!("Trying to index with a value({:?}) which is bigger than size of the array({})", index, array.len()));
+            }
+            self.error(format!("Trying to index with a value({:?}) which is not an integer", index));
+        }
+        self.error(format!("Variable \"{}\" is not an array!", var_name));
     }
 
     fn store_variable(&mut self, var_name: &String) {
@@ -226,6 +299,9 @@ impl Interpreter {
     }
 
     #[must_use]
+    /**
+     * Returns a COPY
+     */
     pub fn get_variable_value(&mut self, var_name: &String) -> Value {
         self.get_variable(var_name);
         return self.pop();
@@ -275,7 +351,7 @@ impl Interpreter {
         return self.stack.pop().unwrap();
     }
 
-    fn error(&mut self, error_msg: String) -> ! {
+    fn error(&self, error_msg: String) -> ! {
         use colored::Colorize;
 
         println!("{}", format!("------Interpreter Panic!-----").red().bold());

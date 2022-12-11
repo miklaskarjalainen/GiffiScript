@@ -13,6 +13,7 @@ pub enum Value {
     Float(f64),
     Literal(String),
     Boolean(bool),
+    Array(Vec<Value>),
     Null,
 }
 
@@ -102,6 +103,25 @@ impl Value {
             Value::Literal(s) => { return s.clone(); },
             Value::Boolean(b) => { return if *b { "true".to_string() } else { "false".to_string() } }
             Value::Null => { return "null".to_string(); },
+            Value::Array(array) => {
+                if array.len() == 0 {
+                    return "[]".to_string();
+                }
+
+                let mut str = String::from("[");
+                let mut iter = array.iter().peekable();
+                loop {
+                    let element = iter.next().expect("this should be quaranteed be valid");
+                    str += &element.to_string();
+
+                    if let None = iter.peek() {
+                        break;
+                    }
+                    str.push(',');
+                }
+                str.push(']');
+                return str;
+            }
         }
     }
 }

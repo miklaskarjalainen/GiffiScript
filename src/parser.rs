@@ -16,6 +16,10 @@ pub enum ParserToken {
     Nop, // fallback used by errors.
     DeclareVariable(String), // Pops a value from stack and stores it to stack
     StoreVariable(String),   // Pops and stores it
+    MakeArray(u32),          // How many arguments to pop from the stack to create the array
+    GetArrayElement(Vec<ParserToken>),
+    GetVariableArrayElement(String, Vec<ParserToken>),
+    StoreVariableArrayElement(String), // first pop is assignment, second is index.
     DeclareFunction(String, Vec<ParserToken>),
     GetVariable(String),     // Pushes the variables value to stack
     Operation(String),       // Pops 2 values from stack as arguments and pushes a result
@@ -93,8 +97,15 @@ impl Parser {
             else if let LexerToken::Identifier(ident) = token.clone() {
                 self.eat(); // Identifier
                 let next = self.eat();
+                let tk = next.unwrap();
 
-                if let LexerToken::Operator(op) = next.unwrap() {
+                // Is array
+                if let LexerToken::Symbol(symbol) = tk {
+                    if symbol == '[' {
+                        tokens.append(&mut self.array_assignment(ident));
+                    }
+                }
+                else if let LexerToken::Operator(op) = tk {
                     match op.as_str() {
                         "=" => { tokens.append(&mut self.variable_assignment(ident)); }
                         "(" => { tokens.append(&mut self.function_call(ident)); }
@@ -116,51 +127,94 @@ impl Parser {
         tokens
     }
 
+    /**
+     * Turns an expression like [Identifier("foo"), Operator("+"), Int(5)] to
+     * [GetVariable("foo"), Operation("+"), Push(5)]
+     */
     fn parse_expression(&mut self) -> Vec<ParserToken> {
         assert!(self.is_expr);
 
         let mut tokens = vec![];
+        // This is an array
+        if Some(&LexerToken::Symbol('[')) == self.peek() {
+            self.eat_expect(LexerToken::Symbol('['));
+
+            let mut element_count = 0u32;
+            loop {
+                let mut array_element = self.eat_expr(vec![LexerToken::Symbol(','), LexerToken::Symbol(']')]);
+                tokens.append(&mut array_element);
+                
+                let peek = self.peek();
+                
+                if let Some(&LexerToken::Symbol(symbol)) = peek {
+                    if symbol == ',' {
+                        self.eat_expect(LexerToken::Symbol(','));
+                        element_count += 1;
+                    }
+                    else if symbol == ']' {
+                        self.eat_expect(LexerToken::Symbol(']'));
+                        break;
+                    }
+                    else {
+                        panic!("Invalid Array");
+                    }
+                }
+            }
+            // element_count is 1 off, because it counts ','s so we add 1 here, if there was atleast 1 argument.
+            element_count += if tokens.len() > 0 { 1 } else { 0 };
+            
+            tokens.push(ParserToken::MakeArray(element_count));
+            return tokens;
+        }
+
+        // Other expression
         'parse_loop : loop {
             let peek = self.peek();
             if peek.is_none() {
                 break 'parse_loop;
             }
-            let token = peek.unwrap();
-            if token == &LexerToken::NewLine { self.eat(); continue; }
+            let token = self.eat().unwrap();
             
-            if let LexerToken::Identifier(ident) = token.clone() {
-                self.eat(); // Identifier
-                let next = self.eat();
-                if next.is_none() {
-                    tokens.push(ParserToken::GetVariable(ident.clone()));
-                    break;
-                }
-                if let LexerToken::Operator(op) = next.unwrap() {
-                    match op.as_str() {
-                        "(" => { tokens.append(&mut self.function_call(ident)); }
-                        _ => { 
-                            tokens.push(ParserToken::GetVariable(ident.clone()));
-                            tokens.push(ParserToken::Operation(op));
+            match token {
+                LexerToken::Identifier(ident) => {
+                    let next = self.eat();
+                    if next.is_none() {
+                        tokens.push(ParserToken::GetVariable(ident));
+                        break;
+                    }
+
+                    // Still need to determine between: "identifier, fncall(args), array[0]""
+                    match next.unwrap() {
+                        LexerToken::Operator(op) => {
+                            match op.as_str() {
+                                "(" => { 
+                                    tokens.append(&mut self.function_call(ident)); 
+                                }
+                                _ => { 
+                                    tokens.push(ParserToken::GetVariable(ident));
+                                    tokens.push(ParserToken::Operation(op));
+                                }
+                            }
                         }
+                        // Indexing into array
+                        LexerToken::Symbol(symbol) => {
+                            if symbol != '[' {
+                                panic!("Unexpected '['");
+                            }
+                            let argument = self.eat_expr(vec![LexerToken::Symbol(']')]);
+                            self.eat_expect(LexerToken::Symbol(']'));
+                            tokens.push(ParserToken::GetVariableArrayElement(ident, argument));
+                        }
+                        _ => { panic!(""); }
                     }
                 }
-                
-            }
-            else 
-            {
-                match token {
-                    LexerToken::Operator(op) => {
-                        tokens.push(ParserToken::Operation(op.clone()));
-                    },
-                    LexerToken::Identifier(id) => {
-                        tokens.push(ParserToken::GetVariable(id.clone()));
-                    },
-                    LexerToken::Value(val) => {
-                        tokens.push(ParserToken::Push(val.clone()));
-                    } 
-                    _ => { panic!("Invalid syntax {:?}", token); }
-                }
-                self.eat();
+                LexerToken::Operator(op) => {
+                    tokens.push(ParserToken::Operation(op));
+                },
+                LexerToken::Value(val) => {
+                    tokens.push(ParserToken::Push(val));
+                } 
+                _ => { panic!("Invalid syntax {:?}", token); }
             }
         }
         tokens
@@ -271,6 +325,23 @@ impl Parser {
     }
 
     #[must_use]
+    fn array_assignment(&mut self, var_name: String) -> Vec<ParserToken> {
+        // Get Index
+        let idx_expr = self.eat_expr(vec![LexerToken::Symbol(']')]);
+        self.eat_expect(LexerToken::Symbol(']'));
+
+        // Get Assigment
+        self.eat_expect(LexerToken::Operator("=".to_string()));
+        let mut assign_expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
+        self.eat_expect(LexerToken::Symbol(';'));
+
+        let mut tokens = idx_expr;
+        tokens.append(&mut assign_expr);
+        tokens.push(ParserToken::StoreVariableArrayElement(var_name));
+        tokens
+    }
+
+    #[must_use]
     fn variable_assignment(&mut self, var_name: String) -> Vec<ParserToken> {
         let mut tokens = self.eat_expr(vec![LexerToken::Symbol(';')]);
         self.eat_expect(LexerToken::Symbol(';'));
@@ -278,6 +349,7 @@ impl Parser {
         tokens
     }
 
+    #[must_use]
     fn variable_decleration(&mut self) -> Vec<ParserToken> {
         // eat "let" keyword
         self.eat();
@@ -416,7 +488,6 @@ impl Parser {
             }
 
             // Don't eat before this, we don't want to eat the terminator.
-            println!("scope len: {}", scopes.len());
             if scopes.len() == 0 && terminator.contains(&peeked.unwrap()) {
                 break 'get_tokens;
             }
@@ -428,15 +499,30 @@ impl Parser {
                         scopes.push('(');
                     },
                     ")" => {
-                        let popped = scopes.pop().expect("No matching '(' for ')'");
+                        let popped = scopes.pop().expect("No matching ']' for '['");
                         if popped != '(' {
-                            panic!("Expected '(' for ')', but got {} instead!", popped);
+                            panic!("Expected ')' for '(', but got {} instead!", popped);
                         }
                     }
                     _ => {}
                 }
             }
 
+            // Arrays
+            if let LexerToken::Symbol(s) = &token {
+                match s.clone() {
+                    '[' => {
+                        scopes.push(s.clone());
+                    },
+                    ']' => {
+                        let popped = scopes.pop().expect("No matching ']' for '['");
+                        if popped != '[' {
+                            panic!("Expected ']' for '[', but got {} instead!", popped);
+                        }
+                    }
+                    _ => {}
+                }
+            }
             
             out_tks.push_back(token);
         }

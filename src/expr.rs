@@ -28,6 +28,10 @@ impl AstExpr {
         if expr.len() == 0 {
             return vec![];
         }
+        // Make array is already evaluated
+        if let Some(ParserToken::MakeArray(_)) = expr.last() {
+            return expr.to_vec();
+        }
 
         // Turns the expressions to a tree
         let ast = AstExpr::to_ast(&mut expr, 0);
@@ -60,6 +64,12 @@ impl AstExpr {
             return AstExpr::new(token, None, None);
         }
         else if let ParserToken::Call(_, _) = &token {
+            return AstExpr::new(token, None, None);
+        }
+        else if let ParserToken::GetArrayElement(_) = &token {
+            return AstExpr::new(token, None, None);
+        }
+        else if let ParserToken::GetVariableArrayElement(_, _) = &token {
             return AstExpr::new(token, None, None);
         }
         // TODO: do parens

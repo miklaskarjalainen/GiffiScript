@@ -1,7 +1,7 @@
 use crate::value::Value;
 use std::collections::{VecDeque};
 
-const SYMBOLS: [char; 5] = ['{', '}', ',', ':', ';'];
+const SYMBOLS: [char; 7] = ['{', '}', ',', ':', ';', '[', ']'];
 const OPERATORS: [&'static str; 15] = ["+", "-", "/", "*", "%", "<", ">", "(", ")", "=", "!", "==", "!=", "||" , "&&"];
 const KEYWORDS: [&'static str; 7] = ["let", "return", "fn", "if", "else", "while", "import"];
 
