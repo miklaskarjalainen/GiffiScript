@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
+#![allow(unreachable_patterns)]
+#![allow(unreachable_code)]
 
 use std::{env, io::{self, Write}};
 

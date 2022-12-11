@@ -72,7 +72,6 @@ impl Interpreter {
                 self.while_loop(check, body);
             }
             else {
-                #[allow(unreachable_code)]
                 self.error(panic!("Unimplumented operation: {:?}", token));
             }
 
