@@ -239,7 +239,7 @@ impl Parser {
     fn function_call(&mut self, fn_name: String) -> Vec<ParserToken> {
         let mut arg_tokens = vec![];
         'args : loop {
-            let tk = self.peek().expect("Invalid function decleration");
+            let tk = self.peek().expect(format!("Invalid function call '{}()'", fn_name).as_str());
 
             if tk == &LexerToken::Operator(")".to_string()) {
                 self.eat().unwrap();
@@ -285,6 +285,8 @@ impl Parser {
      */
     fn eat_until(&mut self, terminator: Vec<LexerToken>) -> VecDeque<LexerToken> {
         let mut out_tks = VecDeque::new();
+
+        let mut scopes: Vec<char> = vec![]; // '(' and '{' gets pushed in '}' and ')' pushes them out, needs to match.
         'get_tokens: loop {
             let peeked = self.peek();
             if peeked.is_none() {
@@ -293,11 +295,39 @@ impl Parser {
                 }
                 panic!("Expected '{:?}' got EOF instead!", terminator);
             }
-            if terminator.contains(peeked.unwrap()) {
+
+            // Don't eat before this, we don't want to eat the terminator.
+            println!("scope len: {}", scopes.len());
+            if scopes.len() == 0 && terminator.contains(&peeked.unwrap()) {
                 break 'get_tokens;
             }
 
             let token = self.eat().unwrap();
+            if let LexerToken::Operator(op) = &token {
+                match op.as_str() {
+                    "(" => {
+                        scopes.push('(');
+                    },
+                    ")" => {
+                        let popped = scopes.pop().expect("No matching '(' for ')'");
+                        if popped != '(' {
+                            panic!("Expected '(' for ')', but got {} instead!", popped);
+                        }
+                    }
+                    "{" => {
+                        scopes.push('{');
+                    },
+                    "}" => {
+                        let popped = scopes.pop().expect("No matching '{' for '}'");
+                        if popped != '{' {
+                            panic!("Expected '{{' for '}}', but got {} instead!", popped);
+                        }
+                    },
+                    _ => {}
+                }
+            }
+
+            
             out_tks.push_back(token);
         }
         return out_tks;

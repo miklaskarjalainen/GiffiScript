@@ -75,6 +75,19 @@ mod test {
         test_code(code, Value::Null);
     }
 
+    #[test]
+    fn test_fn_return_as_arg() {
+        let code = String::from("
+        fn first() {
+            return \"Hello, World!\";
+        }
+        fn second(arg) {
+            return arg;
+        }
+        let r = second(first());
+        ");
+        test_code(code, Value::Litreal("Hello, World!".to_string()));
+    }
 
     #[test]
     fn test_fn_returns1() {
