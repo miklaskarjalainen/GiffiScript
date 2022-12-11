@@ -223,26 +223,26 @@ impl Parser {
         tokens
     }
 
-    #[must_use]
     fn variable_decleration(&mut self) -> Vec<ParserToken> {
-        let mut tokens = vec![];
-
         // eat "let" keyword
         self.eat();
-
+    
         // identifier
         let tk_identifier = self.eat().expect("expected an identifier after 'let' keyword");
         if let LexerToken::Identifier(identifier) = tk_identifier {
-            // symbol '='
+            // Syntax
             self.eat_expect(LexerToken::Operator("=".to_string()));
-            
-            // Get expression
             let mut expr = self.eat_expr(vec![LexerToken::Symbol(';')]);
-            tokens.append(&mut expr);
-
             self.eat_expect(LexerToken::Symbol(';'));
+            
+            // Tokens        
+            if expr.len() == 0 {
+                panic!("Expected an expression after '=', before ';'");
+            }
+            let mut tokens = vec![];
+            tokens.append(&mut expr);
             tokens.push(ParserToken::DeclareVariable(identifier.clone()));
-
+    
             return tokens;
         }
         panic!("expected an identifier after 'let' keyword");

@@ -101,6 +101,12 @@ impl Lexer {
     }
 
     fn flush(&mut self) {
+        // Literals can be empty (just 2 quotes)!
+        if self.is_literal {
+            self.push_token(LexerToken::Value(Value::Literal(self.current_word.clone())));
+            self.current_word.clear();
+            return;
+        }
         if self.current_word.is_empty() {
             return;
         }
@@ -108,10 +114,8 @@ impl Lexer {
         let word = self.current_word.clone();
         self.current_word.clear();
 
-        if self.is_literal {
-            self.push_token(LexerToken::Value(Value::Literal(word)));
-        }
-        else if let Ok(v) = Value::parse(&word) {
+        
+        if let Ok(v) = Value::parse(&word) {
             self.push_token(LexerToken::Value(v));
         }
         else if OPERATORS.contains(&word.as_str()) { 
@@ -123,8 +127,6 @@ impl Lexer {
         else {
             self.push_token(LexerToken::Identifier(word));
         }
-
-        
     }
 
     fn push_token(&mut self, tk: LexerToken) {
