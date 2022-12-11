@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 use crate::lexer::{LexerToken};
 use crate::parser::{ParserToken};
 
-const MAX_PRECEDENCE:u8 = 5;
+const MAX_PRECEDENCE:u8 = 6;
 
 #[derive(Debug)]
 pub struct AstExpr {
@@ -110,6 +110,9 @@ impl AstExpr {
                 }
                 "*" | "/" | "%" => {
                     return 4u8;
+                }
+                "!" => {
+                    return 5u8;
                 }
                 "(" | ")" => {
                     return MAX_PRECEDENCE;

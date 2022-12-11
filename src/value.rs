@@ -248,11 +248,11 @@ impl ValueAdder<String> for Value {
         return Err(ValueE::UnkownOperation);
     }
 
-    fn less_than(&self, rhs: String) -> Result<Value, ValueE> {
+    fn less_than(&self, _rhs: String) -> Result<Value, ValueE> {
         return Err(ValueE::UnkownOperation);
     }
 
-    fn greater_than(&self, rhs: String) -> Result<Value, ValueE> {
+    fn greater_than(&self, _rhs: String) -> Result<Value, ValueE> {
         return Err(ValueE::UnkownOperation);
     }
 
