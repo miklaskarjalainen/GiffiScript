@@ -13,6 +13,7 @@ pub struct Parser {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ParserToken {
+    Nop, // fallback used by errors.
     DeclareVariable(String), // Pops a value from stack and stores it to stack
     StoreVariable(String),   // Pops and stores it
     DeclareFunction(String, Vec<ParserToken>),

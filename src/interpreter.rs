@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 use std::process::exit;
 
 use crate::parser::{ParserToken};
-use crate::value::{Value};
+use crate::value::{Value, self};
 
 mod math;
 mod io;
@@ -134,13 +134,22 @@ impl Interpreter {
     fn call_function(&mut self, fn_name: &String, arg_tokens: &Vec<ParserToken>) {
         self.execute_tokens(arg_tokens);
 
+        // global panic, which can be used.
         if fn_name == "panic" {
+            // There is an argument to be used as a panic message.
+            if self.stack.len() > 0 {
+                let value = self.pop();
+                self.error(value.to_string());
+            }
             self.error("PANIC".to_string());
         }
 
         self.start_scope(fn_name.clone());
-        let tks = self.funcs.get(fn_name).expect("No function found!").clone();
-        self.execute_tokens(&tks);
+        let tks = self.funcs.get(fn_name);
+        if tks.is_none() {
+            self.error(format!("No function named '{}' exists!", fn_name));
+        }
+        self.execute_tokens(&tks.unwrap().clone());
         self.end_scope();
     }
 
@@ -156,7 +165,7 @@ impl Interpreter {
             *scope.variables.get_mut(var_name).unwrap() = val;
             return;
         }
-        panic!("No variable called {}", var_name);
+        self.error(format!("No variable called '{}' exists!", var_name));
     }
 
     fn declare_variable(&mut self, var_name: &String) {
@@ -165,18 +174,18 @@ impl Interpreter {
         let val = self.pop();
         let scope = self.get_scope();
         if scope.variables.contains_key(var_name) {
-            panic!("A variable named {} already exsts!", var_name);
+            self.error(format!("A variable called '{}' already exists!", var_name));
         }
         scope.variables.insert(var_name.clone(), val);
     }
 
     fn declare_function(&mut self, fn_name: &String, fn_body: &Vec<ParserToken>) {
         if self.get_scope_count() > 1 {
-            panic!("Function declerations only allowed in the global scope!");
+            self.error("Function declerations only allowed in the global scope!".to_string());
         }
 
         if self.funcs.contains_key(fn_name) {
-            panic!("A function named {} already exsts!", fn_name);
+            self.error(format!("A function named '{}' already exsts!", fn_name));
         }
         self.funcs.insert(fn_name.clone(), fn_body.clone());
     }
@@ -194,7 +203,7 @@ impl Interpreter {
             self.push(val.unwrap().clone());
             return;
         }
-        self.error(format!("No variable called {}", var_name));
+        self.error(format!("No variable called '{}' exists", var_name));
     }
 
     #[must_use]
@@ -229,8 +238,7 @@ impl Interpreter {
         let r = lhs.do_operation(op, rhs);
 
         if r.is_err() {
-            println!("Error when executing an operator {:?}", r.unwrap_err());
-            exit(1);
+            self.error(format!("Error when executing an operator {:?}", r.unwrap_err()));
         }
         let ur = r.unwrap();
 
@@ -251,6 +259,7 @@ impl Interpreter {
     fn error(&mut self, error_msg: String) -> ! {
         use colored::Colorize;
 
+        println!("{}", format!("------Interpreter Panic!-----").red().bold());
         println!("{}", format!("-------VALUE STACK [{}]:------", self.stack.len()).red().bold());
 
         let mut stack_copy = self.stack.clone();
@@ -265,7 +274,7 @@ impl Interpreter {
 
         }
 
-        println!("{}", format!("-------VARIABLES:------------").red().bold());
+        println!("{}", format!("----------VARIABLES:---------").red().bold());
         for scope_idx in (0..self.variables.len()).rev() {
             let identation = self.variables.len()-scope_idx;
             let scope_name = &self.variables[scope_idx].scope_name;
@@ -284,7 +293,7 @@ impl Interpreter {
 
         println!("{}", format!("-----------------------------").red().bold());
         let op = unsafe { self.last_op.as_ref() };
-        println!("{}", format!("Last operation: {:?}", op.unwrap_or(&ParserToken::Push(Value::Null))).bold().red());
+        println!("{}", format!("Last operation: {:?}", op.unwrap_or(&ParserToken::Nop)).red());
         println!("{}", format!("Interpreter Error: '{}'", error_msg.bold()).red());
         println!("{}", format!("-----------------------------").red().bold());
 
