@@ -10,6 +10,7 @@ pub enum ValueE {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Int(i64),
+    Float(f64),
     Literal(String),
     Boolean(bool),
     Null,
@@ -17,12 +18,15 @@ pub enum Value {
 
 impl Value {
     /**
-     * Parses Ints, Bools, Null, etc.
+     * Parses Ints, Floats, Bools, Null, etc.
      * Doesn't parse string literals!
      */
     pub fn parse(s: &String) -> Result<Value, ValueE> {
         if let Ok(i) = s.parse::<i64>() {
             return Ok(Value::Int(i));
+        }
+        if let Ok(f) = s.parse::<f64>() {
+            return Ok(Value::Float(f));
         }
         if s == "true" {
             return Ok(Value::Boolean(true));
@@ -94,6 +98,7 @@ impl Value {
     pub fn to_string(&self) -> String {
         match self {
             Value::Int(i) => { return i.to_string(); },
+            Value::Float(f) => { return f.to_string(); },
             Value::Literal(s) => { return s.clone(); },
             Value::Boolean(b) => { return if *b { "true".to_string() } else { "false".to_string() } }
             Value::Null => { return "null".to_string(); },
@@ -117,6 +122,9 @@ impl ValueAdder<Value> for Value {
         if let Value::Int(value) = rhs {
             return self.add(value);
         }
+        if let Value::Float(value) = rhs {
+            return self.add(value);
+        }
         if let Value::Literal(value) = rhs {
             return self.add(value);
         }
@@ -127,11 +135,23 @@ impl ValueAdder<Value> for Value {
         if let Value::Int(value) = rhs {
             return self.sub(value);
         }
+        if let Value::Float(value) = rhs {
+            return self.sub(value);
+        }
+        if let Value::Literal(value) = rhs {
+            return self.sub(value);
+        }
         return Err(ValueE::TypeMismatch);
     }
 
     fn mul(&self, rhs: Value) -> Result<Value, ValueE> {
         if let Value::Int(value) = rhs {
+            return self.mul(value);
+        }
+        if let Value::Float(value) = rhs {
+            return self.mul(value);
+        }
+        if let Value::Literal(value) = rhs {
             return self.mul(value);
         }
         return Err(ValueE::TypeMismatch);
@@ -141,11 +161,23 @@ impl ValueAdder<Value> for Value {
         if let Value::Int(value) = rhs {
             return self.div(value);
         }
+        if let Value::Float(value) = rhs {
+            return self.div(value);
+        }
+        if let Value::Literal(value) = rhs {
+            return self.div(value);
+        }
         return Err(ValueE::TypeMismatch);
     }
 
     fn less_than(&self, rhs: Value) -> Result<Value, ValueE> {
         if let Value::Int(value) = rhs {
+            return self.less_than(value);
+        }
+        if let Value::Float(value) = rhs {
+            return self.less_than(value);
+        }
+        if let Value::Literal(value) = rhs {
             return self.less_than(value);
         }
         return Err(ValueE::TypeMismatch);
@@ -155,11 +187,23 @@ impl ValueAdder<Value> for Value {
         if let Value::Int(value) = rhs {
             return self.greater_than(value);
         }
+        if let Value::Float(value) = rhs {
+            return self.greater_than(value);
+        }
+        if let Value::Literal(value) = rhs {
+            return self.greater_than(value);
+        }
         return Err(ValueE::TypeMismatch);
     }
 
     fn modulo(&self, rhs: Value) -> Result<Value, ValueE> {
         if let Value::Int(value) = rhs {
+            return self.modulo(value);
+        }
+        if let Value::Float(value) = rhs {
+            return self.modulo(value);
+        }
+        if let Value::Literal(value) = rhs {
             return self.modulo(value);
         }
         return Err(ValueE::TypeMismatch);
@@ -172,6 +216,9 @@ impl ValueAdder<i64> for Value {
         if let Value::Int(lhs) = self {
             return Ok(Value::Int(lhs.clone() + rhs));
         }
+        if let Value::Float(lhs) = self {
+            return Ok(Value::Float(lhs.clone() + (rhs as f64)));
+        }
         return Err(ValueE::TypeMismatch);
     }
     
@@ -179,12 +226,18 @@ impl ValueAdder<i64> for Value {
         if let Value::Int(lhs) = self {
             return Ok(Value::Int(lhs.clone() - rhs));
         }
+        if let Value::Float(lhs) = self {
+            return Ok(Value::Float(lhs.clone() - (rhs as f64)));
+        }
         return Err(ValueE::TypeMismatch);
     }
 
     fn mul(&self, rhs: i64) -> Result<Value, ValueE> {
         if let Value::Int(lhs) = self {
             return Ok(Value::Int(lhs.clone() * rhs));
+        }
+        if let Value::Float(lhs) = self {
+            return Ok(Value::Float(lhs.clone() * (rhs as f64)));
         }
         return Err(ValueE::TypeMismatch);
     }
@@ -196,15 +249,21 @@ impl ValueAdder<i64> for Value {
             }
             return Ok(Value::Int(lhs.clone() / rhs));
         }
+        if let Value::Float(lhs) = self {
+            if rhs == 0 {
+                return Err(ValueE::DivisionByZero);
+            }
+            return Ok(Value::Float(lhs.clone() / (rhs as f64)));
+        }
         return Err(ValueE::TypeMismatch);
     }
 
     fn less_than(&self, rhs: i64) -> Result<Value, ValueE> {
         if let Value::Int(lhs) = self {
-            if rhs == 0 {
-                return Err(ValueE::DivisionByZero);
-            }
             return Ok(Value::Boolean(lhs.clone() < rhs));
+        }
+        if let Value::Float(lhs) = self {
+            return Ok(Value::Boolean(lhs.clone() < (rhs as f64)));
         }
         return Err(ValueE::TypeMismatch);
     }
@@ -212,6 +271,9 @@ impl ValueAdder<i64> for Value {
     fn greater_than(&self, rhs: i64) -> Result<Value, ValueE> {
         if let Value::Int(lhs) = self {
             return Ok(Value::Boolean(lhs.clone() > rhs));
+        }
+        if let Value::Float(lhs) = self {
+            return Ok(Value::Boolean(lhs.clone() > (rhs as f64)));
         }
         return Err(ValueE::TypeMismatch);
     }
@@ -222,6 +284,97 @@ impl ValueAdder<i64> for Value {
                 return Err(ValueE::DivisionByZero);
             }
             return Ok(Value::Int(lhs.clone() % rhs));
+        }
+        if let Value::Float(lhs) = self {
+            if rhs == 0 {
+                return Err(ValueE::DivisionByZero);
+            }
+            return Ok(Value::Float(lhs.clone() % (rhs as f64)));
+        }
+        return Err(ValueE::TypeMismatch);
+    }
+}
+
+// Value + f64
+impl ValueAdder<f64> for Value {
+    fn add(&self, rhs: f64) -> Result<Value, ValueE> {
+        if let Value::Int(lhs) = self {
+            return Ok(Value::Int(lhs.clone() + (rhs as i64)));
+        }
+        if let Value::Float(lhs) = self {
+            return Ok(Value::Float(lhs.clone() + rhs));
+        }
+        return Err(ValueE::TypeMismatch);
+    }
+    
+    fn sub(&self, rhs: f64) -> Result<Value, ValueE> {
+        if let Value::Int(lhs) = self {
+            return Ok(Value::Int(lhs.clone() - (rhs as i64)));
+        }
+        if let Value::Float(lhs) = self {
+            return Ok(Value::Float(lhs.clone() - rhs));
+        }
+        return Err(ValueE::TypeMismatch);
+    }
+
+    fn mul(&self, rhs: f64) -> Result<Value, ValueE> {
+        if let Value::Int(lhs) = self {
+            return Ok(Value::Int(lhs.clone() * (rhs as i64)));
+        }
+        if let Value::Float(lhs) = self {
+            return Ok(Value::Float(lhs.clone() * rhs));
+        }
+        return Err(ValueE::TypeMismatch);
+    }
+
+    fn div(&self, rhs: f64) -> Result<Value, ValueE> {
+        if let Value::Int(lhs) = self {
+            if rhs == 0.0 {
+                return Err(ValueE::DivisionByZero);
+            }
+            return Ok(Value::Int(lhs.clone() / (rhs as i64)));
+        }
+        if let Value::Float(lhs) = self {
+            if rhs == 0.0 {
+                return Err(ValueE::DivisionByZero);
+            }
+            return Ok(Value::Float(lhs.clone() / rhs));
+        }
+        return Err(ValueE::TypeMismatch);
+    }
+
+    fn less_than(&self, rhs: f64) -> Result<Value, ValueE> {
+        if let Value::Int(lhs) = self {
+            return Ok(Value::Boolean((lhs.clone() as f64) < rhs));
+        }
+        if let Value::Float(lhs) = self {
+            return Ok(Value::Boolean(lhs.clone() < rhs));
+        }
+        return Err(ValueE::TypeMismatch);
+    }
+
+    fn greater_than(&self, rhs: f64) -> Result<Value, ValueE> {
+        if let Value::Int(lhs) = self {
+            return Ok(Value::Boolean((lhs.clone() as f64) > rhs));
+        }
+        if let Value::Float(lhs) = self {
+            return Ok(Value::Boolean(lhs.clone() > rhs));
+        }
+        return Err(ValueE::TypeMismatch);
+    }
+
+    fn modulo(&self, rhs: f64) -> Result<Value, ValueE> {
+        if let Value::Int(lhs) = self {
+            if rhs == 0.0 {
+                return Err(ValueE::DivisionByZero);
+            }
+            return Ok(Value::Int(lhs.clone() % (rhs as i64)));
+        }
+        if let Value::Float(lhs) = self {
+            if rhs == 0.0 {
+                return Err(ValueE::DivisionByZero);
+            }
+            return Ok(Value::Float(lhs.clone() % rhs));
         }
         return Err(ValueE::TypeMismatch);
     }
