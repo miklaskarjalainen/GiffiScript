@@ -97,7 +97,7 @@ mod test {
         }
         let r = second(first());
         ");
-        test_code(code, Value::Litreal("Hello, World!".to_string()));
+        test_code(code, Value::Literal("Hello, World!".to_string()));
     }
 
     #[test]
@@ -108,7 +108,7 @@ mod test {
         }
         let r = returns_a_value();
         ");
-        test_code(code, Value::Litreal(String::from("Hello, World")));
+        test_code(code, Value::Literal(String::from("Hello, World")));
     }
 
     #[test]

@@ -18,7 +18,7 @@ pub enum LexerToken {
 
 #[derive(Debug)]
 pub struct Lexer {
-    is_litreal: bool,
+    is_literal: bool,
     current_word: String,
     lexer_tokens: VecDeque<LexerToken>
 }
@@ -38,10 +38,10 @@ impl Lexer {
             // Strings
             if c == '"' {
                 lexer.flush();
-                lexer.is_litreal = !lexer.is_litreal;
+                lexer.is_literal = !lexer.is_literal;
                 continue;
             }
-            if lexer.is_litreal {
+            if lexer.is_literal {
                 lexer.current_word.push(c);
                 continue;
             }
@@ -87,7 +87,7 @@ impl Lexer {
         }
         lexer.flush();
 
-        if lexer.is_litreal {
+        if lexer.is_literal {
             panic!("String literal is missing a '\"'");
         }
         
@@ -97,7 +97,7 @@ impl Lexer {
 
     fn new() -> Lexer {
         Lexer{
-            is_litreal: false,
+            is_literal: false,
             current_word: String::from(""),
             lexer_tokens: VecDeque::new()
         }
@@ -111,8 +111,8 @@ impl Lexer {
         let word = self.current_word.clone();
         self.current_word.clear();
 
-        if self.is_litreal {
-            self.push_token(LexerToken::Value(Value::Litreal(word)));
+        if self.is_literal {
+            self.push_token(LexerToken::Value(Value::Literal(word)));
         }
         else if let Ok(v) = Value::parse(&word) {
             self.push_token(LexerToken::Value(v));

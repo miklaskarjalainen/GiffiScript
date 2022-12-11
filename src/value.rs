@@ -8,7 +8,7 @@ pub enum ValueE {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Int(i64),
-    Litreal(String),
+    Literal(String),
     Boolean(bool),
     Null,
 }
@@ -35,7 +35,7 @@ impl Value {
             Value::Int(value) => {
                 return value != &0;
             }
-            Value::Litreal(literal) => {
+            Value::Literal(literal) => {
                 return !literal.is_empty();
             }
             Value::Boolean(value) => {
@@ -73,7 +73,7 @@ impl Value {
     pub fn to_string(&self) -> String {
         match self {
             Value::Int(i) => { return i.to_string(); },
-            Value::Litreal(s) => { return s.clone(); },
+            Value::Literal(s) => { return s.clone(); },
             Value::Boolean(b) => { return if *b { "true".to_string() } else { "false".to_string() } }
             Value::Null => { return "null".to_string(); },
         }
