@@ -2,7 +2,9 @@
 #[derive(Debug)]
 pub enum ValueE {
     ParsingError,
-    TypeMismatch
+    TypeMismatch,
+    UnkownOperation,
+    DivisionByZero,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -103,6 +105,9 @@ impl ValueAdder<Value> for Value {
         if let Value::Int(value) = rhs {
             return self.add(value);
         }
+        if let Value::Literal(value) = rhs {
+            return self.add(value);
+        }
         return Err(ValueE::TypeMismatch);
     }
     
@@ -153,8 +158,34 @@ impl ValueAdder<i64> for Value {
 
     fn div(&self, rhs: i64) -> Result<Value, ValueE> {
         if let Value::Int(lhs) = self {
+            if rhs == 0 {
+                return Err(ValueE::DivisionByZero);
+            }
             return Ok(Value::Int(lhs.clone() / rhs));
         }
         return Err(ValueE::TypeMismatch);
     }
 }
+
+// Value + String
+impl ValueAdder<String> for Value {
+    fn add(&self, rhs: String) -> Result<Value, ValueE> {
+        if let Value::Literal(lhs) = self {
+            return Ok(Value::Literal(lhs.clone() + &rhs));
+        }
+        return Err(ValueE::UnkownOperation);
+    }
+    
+    fn sub(&self, _rhs: String) -> Result<Value, ValueE> {
+        return Err(ValueE::UnkownOperation);
+    }
+
+    fn mul(&self, _rhs: String) -> Result<Value, ValueE> {
+        return Err(ValueE::UnkownOperation);
+    }
+
+    fn div(&self, _rhs: String) -> Result<Value, ValueE> {
+        return Err(ValueE::UnkownOperation);
+    }
+}
+
