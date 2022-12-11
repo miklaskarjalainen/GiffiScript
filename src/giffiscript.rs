@@ -162,4 +162,65 @@ mod test {
         test_code(code, Value::Int(6));
     }
 
+    #[test]
+    fn test_if_statement_null() {
+        // null != true
+        let code = String::from("
+        let r = null;
+        let x = null;
+        if x { 
+            r = true;
+        }
+        ");
+        test_code(code, Value::Null);
+    }
+
+    #[test]
+    fn test_if_statement_ints() {
+        // int > 0 == true
+        let code = String::from("
+        let r = null;
+        let x = 2;
+        if x { 
+            r = true;
+        }
+        ");
+        test_code(code, Value::Boolean(true));
+    }
+
+    #[test]
+    fn test_if_statement_bools() {
+        // true == true
+        let code = String::from("
+        let r = null;
+        let x = true;
+        if x { 
+            r = true;
+        }
+        ");
+        test_code(code, Value::Boolean(true));
+    }
+
+    #[test]
+    fn test_if_statement_strings() {
+        // "Hello, World" == true (Non empty strings are true)
+        let code = String::from("
+        let r = null;
+        let x = \"Hello, World\";
+        if x { 
+            r = true;
+        }
+        ");
+        test_code(code, Value::Boolean(true));
+
+        // "Hello, World" == true (Non empty strings are true)
+        let code = String::from("
+        let r = null;
+        let x = \"\";
+        if x { 
+            r = true;
+        }
+        ");
+        test_code(code, Value::Null);
+    }
 }
