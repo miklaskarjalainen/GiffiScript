@@ -24,6 +24,9 @@ impl Value {
         if s == "false" {
             return Ok(Value::Boolean(false));
         }
+        if s == "null" {
+            return Ok(Value::Null);
+        }
         Err(ValueE::ParsingError)
     }
 

@@ -73,6 +73,17 @@ mod test {
         let r = second();
         ");
         test_code(code, Value::Null);
+
+        let code = String::from("
+        fn first() {
+            return null;
+        }
+        fn second() {
+            return first();
+        }
+        let r = second();
+        ");
+        test_code(code, Value::Null);
     }
 
     #[test]
