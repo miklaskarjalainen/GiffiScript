@@ -16,6 +16,13 @@ pub enum LexerToken {
     Eof
 }
 
+#[derive(PartialEq)]
+enum CommentType {
+    None,
+    Line,
+    MultiLine
+}
+
 #[derive(Debug)]
 pub struct Lexer {
     is_literal: bool,
@@ -27,6 +34,7 @@ impl Lexer {
     pub fn lex(code: String) -> VecDeque<LexerToken> {
         let mut lexer = Lexer::new();
 
+        let mut is_commented = CommentType::None;
         let mut iter = code.chars().peekable();
         loop {
             let opt_c = iter.next();
@@ -34,6 +42,50 @@ impl Lexer {
                 break;
             }
             let c = opt_c.unwrap();
+
+            // Comments
+            if is_commented == CommentType::Line {
+                if c == '\n' {
+                    is_commented = CommentType::None;
+                }
+                continue;
+            }
+            else if is_commented == CommentType::MultiLine {
+                if c != '*' {
+                    continue;
+                }
+                let peeked_c = iter.peek();
+                if peeked_c.is_none() {
+                    break;
+                }
+                let next_c = peeked_c.unwrap();
+                if next_c == &'/' {
+                    is_commented = CommentType::None;
+                    iter.next().unwrap();
+                }
+                continue;
+            }
+
+            if c == '/' {
+                let peeked_c = iter.peek();
+                if peeked_c.is_none() {
+                    break;
+                }
+                let next_c = peeked_c.unwrap();
+
+                if &'/' == next_c {
+                    lexer.flush();
+                    is_commented = CommentType::Line;
+                    iter.next().unwrap();
+                    continue;
+                }
+                else if &'*' == next_c {
+                    lexer.flush();
+                    is_commented = CommentType::MultiLine;
+                    iter.next().unwrap();
+                    continue;
+                }
+            }
             
             // Strings
             if c == '"' {
