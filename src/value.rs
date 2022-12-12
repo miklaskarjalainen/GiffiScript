@@ -14,6 +14,7 @@ pub enum Value {
     Literal(String),
     Boolean(bool),
     Array(Vec<Value>),
+    Ptr(*mut u32),
     Null,
 }
 
@@ -54,6 +55,9 @@ impl Value {
             }
             Value::Null => {
                 return false;
+            }
+            Value::Ptr(ptr) => {
+                return !ptr.is_null();
             }
             _ => {
                 panic!("Not implemented yet!");
@@ -103,6 +107,7 @@ impl Value {
             Value::Literal(s) => { return s.clone(); },
             Value::Boolean(b) => { return if *b { "true".to_string() } else { "false".to_string() } }
             Value::Null => { return "null".to_string(); },
+            Value::Ptr(ptr) => { return format!("{:?}", ptr); },
             Value::Array(array) => {
                 if array.len() == 0 {
                     return "[]".to_string();
