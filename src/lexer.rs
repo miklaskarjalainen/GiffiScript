@@ -43,12 +43,20 @@ impl Lexer {
 
         let mut is_commented = CommentType::None;
         let mut iter = code.chars().peekable();
+
         loop {
             let opt_c = iter.next();
             if opt_c.is_none() {
                 break;
             }
             let c = opt_c.unwrap();
+
+            // Counter
+            lexer.column += 1;
+            if c == '\n' {
+                lexer.line += 1;
+                lexer.column = 1;
+            }
 
             // Comments
             if is_commented == CommentType::Line {
@@ -164,7 +172,7 @@ impl Lexer {
             is_literal: false,
             current_word: String::from(""),
             lexer_tokens: VecDeque::new(),
-            line: 0, column: 0
+            line: 1, column: 1
         }
     }
 

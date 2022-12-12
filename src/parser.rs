@@ -8,7 +8,8 @@ use crate::expr::{AstExpr};
 
 pub struct Parser {
     input: VecDeque<LexerToken>,
-    is_expr: bool
+    is_expr: bool,
+    last_line: u16, last_column: u16
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -65,7 +66,7 @@ impl Parser {
                 else if symbol == &'}' {
                     let symbol = scopes.pop().expect(format!("not matching '}}' for '{{' got {} instead", symbol).as_str());
                     if symbol != '{' {
-                        panic!("not matching '}}' for '{{' got {} instead", symbol);
+                        self.error(format!("not matching '}}' for '{{' got {} instead", symbol));
                     }
                 }
             }
@@ -89,7 +90,7 @@ impl Parser {
                     "import" => {
                         tokens.append(&mut self.import_keyword())
                     }
-                    _ => { panic!("Unimplumented keyword {}", kw); }
+                    _ => { self.error(format!("Unimplumented keyword {}", kw)); }
                 }
 
             }
@@ -109,7 +110,7 @@ impl Parser {
                         "=" => { tokens.append(&mut self.variable_assignment(ident.clone())); }
                         "(" => { tokens.append(&mut self.function_call(ident.clone())); }
                         _ => { 
-                            panic!("Invalid operator! {}", op); 
+                            self.error(format!("Invalid operator! {}", op));
                         }
                     }
                 }
@@ -120,7 +121,7 @@ impl Parser {
             }
             else 
             {
-                panic!("Invalid syntax found token {:?}", token);
+                self.error(format!("Invalid syntax found token {:?}", token));
             }
         }
         tokens
@@ -145,7 +146,7 @@ impl Parser {
                 
                 let peek = self.peek();
                 if peek.is_none() {
-                    panic!("Expected ']' near '['");
+                    self.error(format!("Expected ']' near '['"));
                 }
 
                 if let LexerTokenType::Symbol(symbol) = &peek.unwrap().token {
@@ -158,7 +159,7 @@ impl Parser {
                         break;
                     }
                     else {
-                        panic!("Expected ']' near '['");
+                        self.error(format!("Expected ']' near '['"));
                     }
                 }
             }
@@ -201,7 +202,7 @@ impl Parser {
                         // Indexing into array
                         LexerTokenType::Symbol(symbol) => {
                             if symbol != '[' {
-                                panic!("Unexpected '['");
+                                self.error(format!("Unexpected '['"));
                             }
                             let argument = self.eat_expr(vec![LexerTokenType::Symbol(']')]);
                             self.eat_expect(LexerTokenType::Symbol(']'));
@@ -216,7 +217,7 @@ impl Parser {
                 LexerTokenType::Value(val) => {
                     tokens.push(ParserToken::Push(val));
                 } 
-                _ => { panic!("Invalid syntax {:?}", token); }
+                _ => { self.error(format!("Invalid syntax {:?}", token)); }
             }
         }
         tokens
@@ -236,7 +237,7 @@ impl Parser {
                 }
             }
         }
-        panic!("Expected Library as String after \"import\" got EOF instead!");
+        self.error("Expected Library as String after \"import\" got EOF instead!".to_string());
     }
 
     #[must_use]
@@ -246,7 +247,7 @@ impl Parser {
         // If comparision 
         let mut expr = self.eat_expr(vec![LexerTokenType::Symbol('{')]);
         if expr.len() == 0 {
-            panic!("Expecte an comparision after 'if' statement!");
+            self.error("Expecte an comparision after 'if' statement!".to_string());
         }
         
         // If(true) body
@@ -368,7 +369,7 @@ impl Parser {
             
             // Tokens        
             if expr.len() == 0 {
-                panic!("Expected an expression after '=', before ';'");
+                self.error("Expected an expression after '=', before ';'".to_string());
             }
             let mut tokens = vec![];
             tokens.append(&mut expr);
@@ -376,7 +377,7 @@ impl Parser {
     
             return tokens;
         }
-        panic!("expected an identifier after 'let' keyword");
+        self.error("expected an identifier after 'let' keyword".to_string());
     }
 
     #[must_use]
@@ -407,13 +408,13 @@ impl Parser {
                     else if next == LexerTokenType::Operator(")".to_string()) {
                         break 'args;
                     }
-                    panic!("Syntax error");
+                    self.error("Syntax error".to_string());
                 }
                 else if tk == LexerTokenType::Operator(")".to_string()) {
                     break 'args;
                 }
                 else {
-                    panic!("Syntax error");
+                    self.error("Syntax error".to_string());
                 }
             }
             fn_tokens.reverse();
@@ -427,7 +428,7 @@ impl Parser {
             // push tokens
             return vec![(ParserToken::DeclareFunction(fn_name, fn_tokens))];
         }
-        panic!("expected an identifier after 'fn' keyword");
+        self.error("expected an identifier after 'fn' keyword".to_string());
     }
 
     #[must_use]
@@ -458,7 +459,7 @@ impl Parser {
                     break 'args;
                 }
                 else {
-                    panic!("Syntax error");
+                    self.error("Syntax error".to_string());
                 }
             }
         }
@@ -488,7 +489,7 @@ impl Parser {
                 if terminator.contains(&LexerTokenType::Eof) {
                     break 'get_tokens;
                 }
-                panic!("Expected '{:?}' got EOF instead!", terminator);
+                self.error(format!("Expected '{:?}' got EOF instead!", terminator));
             }
 
             // Don't eat before this, we don't want to eat the terminator.
@@ -505,7 +506,7 @@ impl Parser {
                     ")" => {
                         let popped = scopes.pop().expect("No matching ']' for '['");
                         if popped != '(' {
-                            panic!("Expected ')' for '(', but got {} instead!", popped);
+                            self.error(format!("Expected ')' for '(', but got {} instead!", popped));
                         }
                     }
                     _ => {}
@@ -521,7 +522,7 @@ impl Parser {
                     ']' => {
                         let popped = scopes.pop().expect("No matching ']' for '['");
                         if popped != '[' {
-                            panic!("Expected ']' for '[', but got {} instead!", popped);
+                            self.error(format!("Expected ']' for '[', but got {} instead!", popped));
                         }
                     }
                     _ => {}
@@ -540,7 +541,6 @@ impl Parser {
         let expr = self.eat_until(terminator);
         let mut parse = Parser::new(expr, true);
         let mut parsed = parse.parse_expression();
-        println!("parsed {:?}", parsed);
         let evaluated = AstExpr::evaluate(&mut parsed);
         return evaluated;
     }
@@ -555,7 +555,7 @@ impl Parser {
     fn eat_checked(&mut self) -> LexerToken {
         let popped = self.eat();
         if popped.is_none() {
-            panic!("Got unexpected EOF");
+            self.error("Got unexpected EOF".to_string());
         }
         popped.unwrap()
     }
@@ -563,24 +563,38 @@ impl Parser {
     fn eat_expect(&mut self, expect: LexerTokenType) -> LexerToken {
         let popped = self.eat();
         if popped.is_none() {
-            panic!("Expected {:?} got EOF instead!", expect);
+            self.error(format!("Expected {:?} got EOF instead!", expect));
         }
         let tk = popped.unwrap();
         if tk.token != expect {
-            panic!("Expected {:?} got {:?} instead! :(", expect, tk);
+            self.error(format!("Expected {:?} got {:?} instead! :(", expect, tk.token));
         }
         tk
     }
 
     fn eat(&mut self) -> Option<LexerToken> {
-        println!("ate {:?}", self.input.front());
-        self.input.pop_front()
+        let popped = self.input.pop_front();
+        if let Some(tk) = popped {
+            self.last_line = tk.line;
+            self.last_column = tk.column;
+            return Some(tk);
+        }
+        popped
+    }
+
+    fn error(&self, msg: String) -> ! {
+        use colored::Colorize;
+        // TODO: Filename
+        println!("{}", format!("An error occurred while parsing at {}:{} '{}'", self.last_line, self.last_column, msg).red());
+        panic!("");
     }
 
     fn new(tks: VecDeque<LexerToken>, is_expr: bool) -> Parser { 
         Parser {
             input: tks,
-            is_expr: is_expr
+            is_expr: is_expr,
+            last_column: 0,
+            last_line: 0
         }
     }
 }
