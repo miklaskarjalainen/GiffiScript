@@ -243,4 +243,53 @@ mod test {
         ");
         test_code(code, Value::Boolean(true));
     }
+
+    #[test]
+    fn test_array_assignment_simple() {
+        let code = String::from("
+        let r = [1,2,3,true,5,6,7];
+        ");
+        test_code(code, Value::Array(
+        vec![
+            Value::Int(1),
+            Value::Int(2),
+            Value::Int(3),
+            Value::Boolean(true),
+            Value::Int(5),
+            Value::Int(6),
+            Value::Int(7)
+        ]));
+    }
+
+    #[test]
+    fn test_array_assignment_complex() {
+        let code = String::from("
+        let arr = [50,25];
+        let r = [arr[0]+arr[1],\"Hello\", 10*2, false];
+        ");
+        test_code(code, Value::Array(
+        vec![
+            Value::Int(75),
+            Value::Literal("Hello".to_string()),
+            Value::Int(20),
+            Value::Boolean(false)
+        ]));
+    }
+
+    #[test]
+    fn test_array_returning() {
+        let code = String::from("
+        fn returns_an_array() {
+            return [75,\"Hello\", 10*2, false];
+        }
+        let r = returns_an_array();
+        ");
+        test_code(code, Value::Array(
+        vec![
+            Value::Int(75),
+            Value::Literal("Hello".to_string()),
+            Value::Int(20),
+            Value::Boolean(false)
+        ]));
+    }
 }
