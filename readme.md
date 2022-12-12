@@ -11,8 +11,8 @@ A simple interpreted toy language created as a programming challenge/exercise.
 Current state of the "programming language" is still very volatile and evolving.
 
 An implementation of FizzBuzz in GiffiScript.
-~~~
-import "io";
+~~~js
+import "io"; // needed for 'print()'
 
 let idx = 0;
 while idx < 100 {
