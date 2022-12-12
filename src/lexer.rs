@@ -6,7 +6,7 @@ const OPERATORS: [&'static str; 15] = ["+", "-", "/", "*", "%", "<", ">", "(", "
 const KEYWORDS: [&'static str; 7] = ["let", "return", "fn", "if", "else", "while", "import"];
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum LexerToken {
+pub enum LexerTokenType {
     Keyword(String),
     Value(Value),
     Symbol(char),
@@ -14,6 +14,12 @@ pub enum LexerToken {
     Identifier(String),
     NewLine,
     Eof
+}
+
+#[derive(Debug, Clone)]
+pub struct LexerToken {
+    pub token: LexerTokenType,
+    pub line: u16, pub column: u16
 }
 
 #[derive(PartialEq)]
@@ -27,7 +33,8 @@ enum CommentType {
 pub struct Lexer {
     is_literal: bool,
     current_word: String,
-    lexer_tokens: VecDeque<LexerToken>
+    lexer_tokens: VecDeque<LexerToken>,
+    line: u16, column: u16,
 }
 
 impl Lexer {
@@ -105,7 +112,7 @@ impl Lexer {
             if SYMBOLS.contains(&c)
             {
                 lexer.flush();
-                lexer.push_token(LexerToken::Symbol(c));
+                lexer.push_token(LexerTokenType::Symbol(c));
                 continue;
             }
             if OPERATORS.contains(&String::from(c).as_str())
@@ -148,7 +155,7 @@ impl Lexer {
             panic!("String literal is missing a '\"'");
         }
         
-        lexer.lexer_tokens.push_back(LexerToken::Eof);
+        lexer.push_token(LexerTokenType::Eof);
         lexer.lexer_tokens
     }
 
@@ -156,14 +163,15 @@ impl Lexer {
         Lexer{
             is_literal: false,
             current_word: String::from(""),
-            lexer_tokens: VecDeque::new()
+            lexer_tokens: VecDeque::new(),
+            line: 0, column: 0
         }
     }
 
     fn flush(&mut self) {
         // Literals can be empty (just 2 quotes)!
         if self.is_literal {
-            self.push_token(LexerToken::Value(Value::Literal(self.current_word.clone())));
+            self.push_token(LexerTokenType::Value(Value::Literal(self.current_word.clone())));
             self.current_word.clear();
             return;
         }
@@ -176,21 +184,23 @@ impl Lexer {
 
         
         if let Ok(v) = Value::parse(&word) {
-            self.push_token(LexerToken::Value(v));
+            self.push_token(LexerTokenType::Value(v));
         }
         else if OPERATORS.contains(&word.as_str()) { 
-            self.push_token(LexerToken::Operator(word.clone()));
+            self.push_token(LexerTokenType::Operator(word.clone()));
         }
         else if KEYWORDS.contains(&word.as_str()) {
-            self.push_token(LexerToken::Keyword(word.clone()));
+            self.push_token(LexerTokenType::Keyword(word.clone()));
         }
         else {
-            self.push_token(LexerToken::Identifier(word));
+            self.push_token(LexerTokenType::Identifier(word));
         }
     }
 
-    fn push_token(&mut self, tk: LexerToken) {
-        self.lexer_tokens.push_back(tk);
+    fn push_token(&mut self, tk: LexerTokenType) {
+        self.lexer_tokens.push_back(
+            LexerToken { token: tk, line: self.line, column: self.column }
+        );
     }
 
 }
