@@ -187,7 +187,8 @@ impl Parser {
                     }
 
                     // Still need to determine between: "identifier, fncall(args), array[0]""
-                    match next.unwrap().token {
+                    let next_token = next.unwrap().token;
+                    match next_token {
                         LexerTokenType::Operator(op) => {
                             match op.as_str() {
                                 "(" => { 
@@ -208,7 +209,9 @@ impl Parser {
                             self.eat_expect(LexerTokenType::Symbol(']'));
                             tokens.push(ParserToken::GetVariableArrayElement(ident, argument));
                         }
-                        _ => { panic!(""); }
+                        _ => { 
+                            self.error(format!("Unexpected {:?} after expression!", next_token));
+                        }
                     }
                 }
                 LexerTokenType::Operator(op) => {
