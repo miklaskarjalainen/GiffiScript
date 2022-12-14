@@ -94,6 +94,12 @@ impl Value {
             "!=" => {
                 return Ok(Value::Boolean(*self != other));
             }
+            "&&" => {
+                return Ok(Value::Boolean(self.is_true() && other.is_true()));
+            },
+            "||" => {
+                return Ok(Value::Boolean(self.is_true() || other.is_true()));
+            }
             _ => {
                 panic!("Invalid operation");
             }
@@ -128,6 +134,27 @@ impl Value {
                 return str;
             }
         }
+    }
+
+    pub fn literal(&self) -> String {
+        if let Value::Literal(s) = self {
+            return s.clone();
+        }
+        panic!("Expected a String Literal got {:?} instead!", self);
+    }
+
+    pub fn int(&self) -> i64 {
+        if let Value::Int(i) = self {
+            return i.clone();
+        }
+        panic!("Expected an Int got {:?} instead!", self);
+    }
+
+    pub fn ptr(&self) -> *mut u32 {
+        if let Value::Ptr(ptr) = self {
+            return ptr.clone();
+        }
+        panic!("Expected a Pointer got {:?} instead!", self);
     }
 }
 
