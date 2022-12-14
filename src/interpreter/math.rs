@@ -24,6 +24,25 @@ pub fn import_libs(interpreter: &mut Interpreter) {
     interpreter.declare_function(&"rand_rangef".to_string(), &vec![
         ParserToken::CallNative(rand_rangef)
     ]);
+
+    interpreter.declare_function(&"sin".to_string(), &vec![
+        ParserToken::CallNative(sin)
+    ]);
+    interpreter.declare_function(&"tan".to_string(), &vec![
+        ParserToken::CallNative(tan)
+    ]);
+    interpreter.declare_function(&"cos".to_string(), &vec![
+        ParserToken::CallNative(cos)
+    ]);
+    interpreter.declare_function(&"sinh".to_string(), &vec![
+        ParserToken::CallNative(sinh)
+    ]);
+    interpreter.declare_function(&"tanh".to_string(), &vec![
+        ParserToken::CallNative(tanh)
+    ]);
+    interpreter.declare_function(&"cosh".to_string(), &vec![
+        ParserToken::CallNative(cosh)
+    ]);
 }
 
 fn sum(interpreter: *mut Interpreter) {
@@ -53,6 +72,42 @@ fn min(interpreter: *mut Interpreter) {
     let arg2 = machine.pop().int();
     let r = arg1.min(arg2);
     machine.push(Value::Int(r));
+}
+
+fn sin(interpreter: *mut Interpreter) {
+    let machine = unsafe { interpreter.as_mut() }.unwrap();
+    let arg = machine.pop().float();
+    machine.push(Value::Float(arg.sin()));
+}
+
+fn tan(interpreter: *mut Interpreter) {
+    let machine = unsafe { interpreter.as_mut() }.unwrap();
+    let arg = machine.pop().float();
+    machine.push(Value::Float(arg.tan()));
+}
+
+fn cos(interpreter: *mut Interpreter) {
+    let machine = unsafe { interpreter.as_mut() }.unwrap();
+    let arg = machine.pop().float();
+    machine.push(Value::Float(arg.cos()));
+}
+
+fn sinh(interpreter: *mut Interpreter) {
+    let machine = unsafe { interpreter.as_mut() }.unwrap();
+    let arg = machine.pop().float();
+    machine.push(Value::Float(arg.sinh()));
+}
+
+fn tanh(interpreter: *mut Interpreter) {
+    let machine = unsafe { interpreter.as_mut() }.unwrap();
+    let arg = machine.pop().float();
+    machine.push(Value::Float(arg.tanh()));
+}
+
+fn cosh(interpreter: *mut Interpreter) {
+    let machine = unsafe { interpreter.as_mut() }.unwrap();
+    let arg = machine.pop().float();
+    machine.push(Value::Float(arg.cosh()));
 }
 
 fn rand_rangei(interpreter: *mut Interpreter) {
