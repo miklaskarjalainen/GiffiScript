@@ -16,10 +16,7 @@ pub fn import_libs(interpreter: &mut Interpreter) {
 
 fn print(interpreter: *mut Interpreter) {
     let machine = unsafe { interpreter.as_mut().unwrap() };
-
     let val = machine.pop();
-    machine.push(Value::Ptr(0x0 as *mut u32));
-
     println!("{}", val.to_string());
 }
 
