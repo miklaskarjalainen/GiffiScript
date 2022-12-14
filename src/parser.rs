@@ -445,7 +445,6 @@ impl Parser {
                 break 'args;
             }
             else {
-                println!("{}", fn_name);
                 let mut expr = self.eat_expr(
                     vec![
                         LexerTokenType::Symbol(','),

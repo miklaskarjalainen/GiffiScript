@@ -150,6 +150,13 @@ impl Value {
         panic!("Expected an Int got {:?} instead!", self);
     }
 
+    pub fn float(&self) -> f64 {
+        if let Value::Float(f) = self {
+            return f.clone();
+        }
+        panic!("Expected a Float got {:?} instead!", self);
+    }
+
     pub fn ptr(&self) -> *mut u32 {
         if let Value::Ptr(ptr) = self {
             return ptr.clone();
