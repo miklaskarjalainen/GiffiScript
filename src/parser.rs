@@ -26,6 +26,8 @@ pub enum ParserToken {
     Operation(String),       // Pops 2 values from stack as arguments and pushes a result
     Push(Value),
     Pop(),
+    Continue(),
+    Break(),
     If(Vec<ParserToken>, Vec<ParserToken>), // Pops value, if true executes first, else the second
     While(Vec<ParserToken>, Vec<ParserToken>), // First expression used for comparision, if true executes second (which is the body)
     Call(String, Vec<ParserToken>), // Second are arguments, executed before calling.
@@ -86,6 +88,16 @@ impl Parser {
                     }
                     "while" => {
                         tokens.append(&mut self.while_statement())
+                    }
+                    "continue" => {
+                        self.eat().unwrap();
+                        tokens.push(ParserToken::Continue());
+                        self.eat_expect(LexerTokenType::Symbol(';'));
+                    }
+                    "break" => {
+                        self.eat().unwrap();
+                        tokens.push(ParserToken::Break());
+                        self.eat_expect(LexerTokenType::Symbol(';'));
                     }
                     "import" => {
                         tokens.append(&mut self.import_keyword())

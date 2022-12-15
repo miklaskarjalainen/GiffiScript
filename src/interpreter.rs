@@ -8,15 +8,29 @@ use crate::value::{Value, self};
 mod math;
 mod io;
 
+/**
+ * Used for "return", "break" and "continue" statements 
+ */
+#[derive(Debug, Clone, PartialEq)]
+enum ScopeType {
+    Global,
+    Function,
+    Loop,
+    LoopBody,
+    IfOrElse,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 struct Scope {
     scope_name: String,
+    scope_type: ScopeType,
     variables: HashMap<String, Value>
 }
 impl Scope {
-    pub fn new(scope_name: String) -> Scope {
+    pub fn new(scope_name: String, scope_type: ScopeType) -> Scope {
         Scope {
             scope_name: scope_name,
+            scope_type: scope_type,
             variables: HashMap::new()
         }
     }
@@ -40,7 +54,7 @@ impl Interpreter {
             stack: vec![],
             last_op: 0 as *const ParserToken
         };
-        int.start_scope("global".to_string());
+        int.start_scope("global".to_string(), ScopeType::Global);
         return int;
     }
 
@@ -71,7 +85,7 @@ impl Interpreter {
                 self.op(op);
             }
             else if let ParserToken::Return() = &token {
-                break;
+                self.return_statement();
             }
             else if let ParserToken::MakeArray(arg_count) = &token {
                 self.make_array(*arg_count);
@@ -93,6 +107,12 @@ impl Interpreter {
             }
             else if let ParserToken::While(check, body) = &token {
                 self.while_loop(check, body);
+            }
+            else if let ParserToken::Break() = &token {
+                self.break_statement();   
+            }
+            else if let ParserToken::Continue() = &token {
+                break;
             }
             else if let ParserToken::Import(library) = &token {
                 self.import(library);
@@ -171,7 +191,14 @@ impl Interpreter {
     }
 
     fn while_loop(&mut self, check: &Vec<ParserToken>, body: &Vec<ParserToken>) {
+        self.start_scope("while loop begin".to_string(), ScopeType::Loop);
+        let while_scope_count = self.get_scope_count();
         'while_loop : loop{
+            // The scope that this loop was in, doesn't exist anymore.
+            if self.get_scope_count() < while_scope_count {
+                break 'while_loop;
+            }
+
             // Evalute
             self.execute_tokens(check);
             let continue_looping = self.pop().is_true();
@@ -180,24 +207,39 @@ impl Interpreter {
             }
 
             // Execute the body
-            self.start_scope("While loop".to_string());
+            self.start_scope("While loop".to_string(), ScopeType::LoopBody);
             self.execute_tokens(body);
             self.end_scope();
         }
+        self.end_scope();
     }
 
     fn if_statement(&mut self, true_body: &Vec<ParserToken>, false_body: &Vec<ParserToken>) {
         let value = self.pop();
         if value.is_true() {
-            self.start_scope("If block".to_string());
+            self.start_scope("If block".to_string(), ScopeType::IfOrElse);
             self.execute_tokens(true_body);
             self.end_scope();
         }
         else {
-            self.start_scope("Else block".to_string());
+            self.start_scope("Else block".to_string(), ScopeType::IfOrElse);
             self.execute_tokens(false_body);
             self.end_scope();
         }
+    }
+    
+    fn break_statement(&mut self) {
+        while self.get_scope_type() != &ScopeType::Loop {
+            self.end_scope();
+        }
+        self.end_scope();
+    }
+
+    fn return_statement(&mut self) {
+        while self.get_scope_type() != &ScopeType::Function {
+            self.end_scope();
+        }
+        self.end_scope();
     }
 
     fn call_function(&mut self, fn_name: &String, arg_tokens: &Vec<ParserToken>) {
@@ -213,7 +255,7 @@ impl Interpreter {
             self.error("PANIC".to_string());
         }
 
-        self.start_scope(fn_name.clone());
+        self.start_scope(fn_name.clone(), ScopeType::Function);
         let tks = self.funcs.get(fn_name);
         if tks.is_none() {
             self.error(format!("No function named '{}' exists!", fn_name));
@@ -315,9 +357,13 @@ impl Interpreter {
         self.variables.front_mut().unwrap()
     }
 
-    fn start_scope(&mut self, scope_name: String) {
+    fn get_scope_type(&self) -> &ScopeType {
+        &self.variables.front().unwrap().scope_type
+    }
+
+    fn start_scope(&mut self, scope_name: String, scope_type: ScopeType) {
         self.variables.push_front(
-            Scope::new(scope_name)
+            Scope::new(scope_name, scope_type)
         );
     }
 

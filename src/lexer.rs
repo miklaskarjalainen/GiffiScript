@@ -3,7 +3,7 @@ use std::collections::{VecDeque};
 
 const SYMBOLS: [char; 7] = ['{', '}', ',', ':', ';', '[', ']'];
 const OPERATORS: [&'static str; 16] = ["+", "-", "/", "*", "%", "<", ">", "(", ")", "=", "!", "|", "==", "!=", "||" , "&&"];
-const KEYWORDS: [&'static str; 7] = ["let", "return", "fn", "if", "else", "while", "import"];
+const KEYWORDS: [&'static str; 9] = ["let", "return", "fn", "if", "else", "while", "import", "break", "continue"];
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LexerTokenType {
