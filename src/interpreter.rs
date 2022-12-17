@@ -5,8 +5,9 @@ use crate::lexer::{Lexer};
 use crate::parser::{Parser, ParserToken};
 use crate::value::{Value, self};
 
-mod math;
 mod io;
+mod math;
+mod sdl;
 
 #[derive(Debug, Clone, PartialEq)]
 struct Scope {
@@ -118,6 +119,10 @@ impl Interpreter {
         }
         if library == "io" {
             io::import_libs(self);
+            return;
+        }
+        if library == "sdl" {
+            sdl::import_libs(self);
             return;
         }
 
@@ -388,7 +393,7 @@ impl Interpreter {
 
         println!("{}", format!("-----------------------------").red().bold());
         let op = unsafe { self.last_op.as_ref() };
-        println!("{}", format!("Last operation: {:?}", op.unwrap_or(&ParserToken::Nop)).red());
+        println!("{}", format!("Last operation: {:#?}", op.unwrap_or(&ParserToken::Nop)).red());
         println!("{}", format!("Interpreter Error: '{}'", error_msg.bold()).red());
         println!("{}", format!("-----------------------------").red().bold());
 
