@@ -72,14 +72,15 @@ impl AstExpr {
         else if let ParserToken::GetVariableArrayElement(_, _) = &token {
             return AstExpr::new(token, None, None);
         }
-        // TODO: do parens
-        /*
-        else if &ParserToken::Operation("(".to_string()) == &token {
-            let gg = AstExpr::parse_primary(input);
-            return gg;
+        else if let ParserToken::Operation(op) = &token {
+            if op == ")" {
+                let ast = AstExpr::to_ast(input, 0);
+                let popped = input.pop().unwrap();
+                assert!(popped == ParserToken::Operation("(".to_string()));
+                return ast;
+            }
         }
-        */
-        panic!("lol");
+        panic!("unexpected token while evaluating {:?}", token);
     }
 
     fn to_ast(input: &mut Vec<ParserToken>, prec: u8) -> AstExpr {
